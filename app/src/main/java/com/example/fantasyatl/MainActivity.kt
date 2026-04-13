@@ -4,13 +4,17 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.runtime.*
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+
+
+import com.example.fantasyatl.ui.auth.LoginScreen
+import com.example.fantasyatl.ui.home.MainAppLayout
+import com.example.fantasyatl.ui.perfil.PerfilScreen
+import com.example.fantasyatl.ui.equipo.EquipoScreen
+import com.example.fantasyatl.ui.market.MercadoScreen
 import com.example.fantasyatl.ui.theme.FantasyATLTheme
 
 class MainActivity : ComponentActivity() {
@@ -19,11 +23,25 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             FantasyATLTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+             
+                val navController = rememberNavController()
+
+                NavHost(navController = navController, startDestination = "login") {
+
+                    // PANTALLA 1: LOGIN
+                    composable("login") {
+                        // OJO: Asegúrate de que tu LoginScreen acepte este onLoginSuccess (como te expliqué en el mensaje anterior)
+                        LoginScreen(onLoginSuccess = {
+                            navController.navigate("home") {
+                                popUpTo("login") { inclusive = true }
+                            }
+                        })
+                    }
+
+                    // PANTALLA 2: LA APP PRINCIPAL
+                    composable("home") {
+                        AppNavigation()
+                    }
                 }
             }
         }
@@ -31,17 +49,20 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
+fun AppNavigation() {
+    // 0 = Perfil, 1 = Equipo, 2 = Mercado
+    var seccionActual by remember { mutableIntStateOf(0) }
 
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    FantasyATLTheme {
-        Greeting("Android")
+    MainAppLayout(
+        nombreUsuario = "Ramses",
+        nombreLiga = "Liga de Grado Superior",
+        saldo = "15.000.000 €"
+    ) { paddingValues ->
+
+        when (seccionActual) {
+            0 -> PerfilScreen(paddingValues)
+            1 -> EquipoScreen(paddingValues)
+            2 -> MercadoScreen(paddingValues)
+        }
     }
 }
