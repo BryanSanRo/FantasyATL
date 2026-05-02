@@ -3,12 +3,12 @@ package com.example.fantasyatl.ui.auth
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.fantasyatl.data.SessionManager
 import com.example.fantasyatl.data.SupabaseClient
 import com.example.fantasyatl.data.Usuario
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.launch
 import org.mindrot.jbcrypt.BCrypt
-
 
 class AuthViewModel : ViewModel() {
 
@@ -30,6 +30,9 @@ class AuthViewModel : ViewModel() {
     var isLoading = mutableStateOf(false)
     var loginExitoso = mutableStateOf(false)
     var registroExitoso = mutableStateOf(false)
+
+    // ✅ Mensaje de error general (no ligado a un campo)
+    var errorGeneral = mutableStateOf<String?>(null)
 
     fun validateLogin(): Boolean {
         var isValid = true
@@ -68,25 +71,21 @@ class AuthViewModel : ViewModel() {
         if (!validateRegister()) return
         viewModelScope.launch {
             isLoading.value = true
+            errorGeneral.value = null
             try {
-                // ✅ Hashear la contraseña antes de guardar
                 val contrasenaHasheada = BCrypt.hashpw(password.value, BCrypt.gensalt())
-
                 val nuevoUsuario = Usuario(
                     nombre = nombre.value,
                     apellidos = apellidos.value,
                     email = email.value,
-                    contrasena = contrasenaHasheada,   // ✅ Nunca texto plano
+                    contrasena = contrasenaHasheada,
                     fecha_nacimiento = fechaNacimiento.value
                 )
                 SupabaseClient.client.from("usuarios").insert(nuevoUsuario)
-                println("✅ Usuario registrado")
                 registroExitoso.value = true
             } catch (e: Exception) {
-                println("❌ Error completo: ${e.message}")
-                // ✅ Muestra el error real en vez de mensaje genérico
-                nombreError.value = "Error: ${e.message}"
-
+                // ✅ Nunca mostramos e.message directamente
+                errorGeneral.value = traducirError(e)
             } finally {
                 isLoading.value = false
             }
@@ -97,6 +96,7 @@ class AuthViewModel : ViewModel() {
         if (!validateLogin()) return
         viewModelScope.launch {
             isLoading.value = true
+            errorGeneral.value = null
             try {
                 val usuarioEncontrado = SupabaseClient.client.from("usuarios")
                     .select {
@@ -104,24 +104,37 @@ class AuthViewModel : ViewModel() {
                     }.decodeSingleOrNull<Usuario>()
 
                 when {
-                    usuarioEncontrado == null -> {
+                    usuarioEncontrado == null ->
                         usernameError.value = "El usuario no existe"
-                    }
-                    // ✅ BCrypt compara el password con el hash guardado
-                    !BCrypt.checkpw(password.value, usuarioEncontrado.contrasena) -> {
+                    !BCrypt.checkpw(password.value, usuarioEncontrado.contrasena) ->
                         passwordError.value = "Contraseña incorrecta"
-                    }
                     else -> {
-                        println("✅ Login exitoso: ${usuarioEncontrado.nombre}")
+                        SessionManager.usuarioActual = usuarioEncontrado
                         loginExitoso.value = true
                     }
                 }
             } catch (e: Exception) {
-                println("❌ Error de conexión: ${e.message}")
-                usernameError.value = "Error al conectar"
+                // ✅ Nunca mostramos e.message directamente
+                errorGeneral.value = traducirError(e)
             } finally {
                 isLoading.value = false
             }
+        }
+    }
+
+    // ✅ Traduce errores técnicos a mensajes amigables sin exponer datos sensibles
+    private fun traducirError(e: Exception): String {
+        val mensaje = e.message ?: return "Error desconocido"
+        return when {
+            mensaje.contains("row-level security")      -> "No tienes permiso para realizar esta acción"
+            mensaje.contains("unique") ||
+                    mensaje.contains("duplicate")               -> "Este email ya está registrado"
+            mensaje.contains("Unable to resolve host") ||
+                    mensaje.contains("network")                 -> "Sin conexión a internet"
+            mensaje.contains("timeout")                 -> "Conexión lenta, inténtalo de nuevo"
+            mensaje.contains("unauthorized") ||
+                    mensaje.contains("401")                     -> "Sesión expirada, vuelve a iniciar sesión"
+            else                                        -> "Error al conectar con el servidor"
         }
     }
 }

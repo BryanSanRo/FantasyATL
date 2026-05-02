@@ -39,7 +39,6 @@ fun RegisterScreen(
     var showDatePicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState()
 
-    // Selector de fecha (DatePicker)
     if (showDatePicker) {
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
@@ -59,10 +58,9 @@ fun RegisterScreen(
             DatePicker(state = datePickerState)
         }
     }
+
     LaunchedEffect(viewModel.registroExitoso.value) {
-        if (viewModel.registroExitoso.value) {
-            onRegisterSuccess()
-        }
+        if (viewModel.registroExitoso.value) onRegisterSuccess()
     }
 
     Box(
@@ -74,7 +72,6 @@ fun RegisterScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 32.dp)
-                // IMPORTANTE: El scroll debe estar antes que otros modificadores de tamaño
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -89,7 +86,6 @@ fun RegisterScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Campos de texto...
             CustomInputField(
                 label = "Nombre",
                 value = viewModel.nombre.value,
@@ -110,19 +106,25 @@ fun RegisterScreen(
                 label = "Correo Electrónico",
                 value = viewModel.email.value,
                 onValueChange = { viewModel.email.value = it },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next)
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Email,
+                    imeAction = ImeAction.Next
+                )
             )
 
             // Fecha de Nacimiento
             Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-                Text("Fecha de Nacimiento", color = Color.White, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "Fecha de Nacimiento",
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold
+                )
                 OutlinedTextField(
                     value = viewModel.fechaNacimiento.value,
                     onValueChange = { },
                     readOnly = true,
                     modifier = Modifier
                         .fillMaxWidth()
-                        // Usamos un Box alrededor o clickable aquí para detectar el toque
                         .clickable { showDatePicker = true },
                     enabled = false,
                     shape = RoundedCornerShape(12.dp),
@@ -133,6 +135,10 @@ fun RegisterScreen(
                     ),
                     placeholder = { Text("Selecciona tu fecha") }
                 )
+                // Error de fecha
+                viewModel.fechaError.value?.let {
+                    Text(text = it, color = Color(0xFFFFCDD2), fontSize = 12.sp)
+                }
             }
 
             CustomInputField(
@@ -141,7 +147,10 @@ fun RegisterScreen(
                 error = viewModel.passwordError.value,
                 onValueChange = { viewModel.password.value = it },
                 isPassword = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next)
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Next
+                )
             )
 
             CustomInputField(
@@ -150,22 +159,32 @@ fun RegisterScreen(
                 error = viewModel.confirmPasswordError.value,
                 onValueChange = { viewModel.confirmPassword.value = it },
                 isPassword = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done)
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Done
+                )
             )
 
-            // ... (Después del último CustomInputField de Confirmar Contraseña)
+            // Error general
+            viewModel.errorGeneral.value?.let { error ->
+                Text(
+                    text = error,
+                    color = Color(0xFFFFCDD2),
+                    fontSize = 14.sp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
+                )
+            }
 
-            Spacer(modifier = Modifier.height(24.dp)) // Espacio antes del botón verde
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // BOTÓN FINALIZAR
             if (viewModel.isLoading.value) {
                 CircularProgressIndicator(color = Color.White)
             } else {
                 Button(
                     onClick = { viewModel.registrarUsuario() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(55.dp),
+                    modifier = Modifier.fillMaxWidth().height(55.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))
                 ) {
@@ -173,15 +192,11 @@ fun RegisterScreen(
                 }
             }
 
-            // REDUCIMOS ESTE ESPACIO PARA QUE EL TEXTO SUBA
             Spacer(modifier = Modifier.height(8.dp))
 
-            // BOTÓN VOLVER AL LOGIN (Ahora más arriba y con mejor área de clic)
             TextButton(
                 onClick = { onNavigateToLogin() },
-                modifier = Modifier
-                    .fillMaxWidth() // Al hacerlo ancho completo, es más fácil de pulsar
-                    .padding(bottom = 16.dp)
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
             ) {
                 Text(
                     text = "¿Ya tienes cuenta? Inicia sesión",
@@ -191,14 +206,10 @@ fun RegisterScreen(
                 )
             }
 
-            // Un pequeño respiro al final para que el scroll no lo corte
             Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }
-
-
-
 
 @Composable
 fun CustomInputField(
@@ -212,7 +223,7 @@ fun CustomInputField(
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
         Text(
             text = label,
-            color = Color.White, // Ajustado a blanco para tu fondo oscuro
+            color = Color.White,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(bottom = 4.dp)
         )
@@ -222,11 +233,10 @@ fun CustomInputField(
             isError = error != null,
             keyboardOptions = keyboardOptions,
             supportingText = {
-                if (error != null) {
-                    Text(text = error, color = Color(0xFFFFCDD2)) // Rojo suave para que se lea en azul
-                }
+                if (error != null) Text(text = error, color = Color(0xFFFFCDD2))
             },
-            visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
+            visualTransformation = if (isPassword) PasswordVisualTransformation()
+            else VisualTransformation.None,
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(

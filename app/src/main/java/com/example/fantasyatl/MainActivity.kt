@@ -7,16 +7,17 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.fantasyatl.data.SessionManager
 import com.example.fantasyatl.ui.auth.LoginScreen
 import com.example.fantasyatl.ui.auth.RegisterScreen
 import com.example.fantasyatl.ui.equipo.EquipoScreen
@@ -39,12 +40,10 @@ class MainActivity : ComponentActivity() {
 
                     NavHost(navController = navController, startDestination = "login") {
 
-                        // PANTALLA DE LOGIN
                         composable("login") {
                             LoginScreen(
                                 onLoginSuccess = {
                                     navController.navigate("home") {
-                                        // Evita que el usuario vuelva al login con el botón atrás
                                         popUpTo("login") { inclusive = true }
                                     }
                                 },
@@ -54,25 +53,29 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        // PANTALLA DE REGISTRO (Corregida)
                         composable("register") {
                             RegisterScreen(
                                 onRegisterSuccess = {
-                                    // Al registrarse con éxito, volvemos al login
                                     navController.popBackStack()
                                 },
                                 onNavigateToLogin = {
-                                    // Si pulsa en "Ya tengo cuenta", volvemos atrás
                                     navController.navigate("login") {
                                         popUpTo("register") { inclusive = true }
                                     }
                                 }
-                            ) // Aquí se cierran los parámetros de RegisterScreen
+                            )
                         }
 
-                        // PANTALLA PRINCIPAL
+                        // ✅ CORRECCIÓN: pasamos onCerrarSesion al composable
                         composable("home") {
-                            AppNavigation()
+                            AppNavigation(
+                                onCerrarSesion = {
+                                    navController.navigate("login") {
+                                        // Limpia todo el historial
+                                        popUpTo(0) { inclusive = true }
+                                    }
+                                }
+                            )
                         }
                     }
                 }
@@ -82,15 +85,18 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun AppNavigation() {
+fun AppNavigation(onCerrarSesion: () -> Unit) {
     var seccionActual by remember { mutableIntStateOf(0) }
 
+    val nombreUsuario = SessionManager.usuarioActual?.nombre ?: "Usuario"
+
     MainAppLayout(
-        nombreUsuario = "Ramses",
+        nombreUsuario = nombreUsuario,
         nombreLiga = "Liga de Grado Superior",
         saldo = "15.000.000 €",
         seccionSeleccionada = seccionActual,
-        onSeccionSelected = { nuevaSeccion -> seccionActual = nuevaSeccion }
+        onSeccionSelected = { nuevaSeccion -> seccionActual = nuevaSeccion },
+        onCerrarSesion = onCerrarSesion
     ) { paddingValues ->
         when (seccionActual) {
             0 -> PerfilScreen(paddingValues)

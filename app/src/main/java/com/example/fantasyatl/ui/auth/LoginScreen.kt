@@ -5,7 +5,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions // IMPORTANTE
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,26 +20,22 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.fantasyatl.R
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.fantasyatl.R
 
 @Composable
 fun LoginScreen(
     viewModel: AuthViewModel = viewModel(),
     onLoginSuccess: () -> Unit,
     onNavigateToRegister: () -> Unit
-){
-    val gradientBackground = Brush.verticalGradient(
-        colors = listOf(
-            Color(0xFF1A237E),
-            Color(0xFF004D40)
-        )
-    )
+) {
     LaunchedEffect(viewModel.loginExitoso.value) {
-        if (viewModel.loginExitoso.value) {
-            onLoginSuccess()
-        }
+        if (viewModel.loginExitoso.value) onLoginSuccess()
     }
+
+    val gradientBackground = Brush.verticalGradient(
+        colors = listOf(Color(0xFF1A237E), Color(0xFF004D40))
+    )
 
     Box(
         modifier = Modifier
@@ -65,7 +61,7 @@ fun LoginScreen(
         ) {
             Spacer(modifier = Modifier.height(100.dp))
 
-            // --- CAMPO USUARIO (EMAIL) ---
+            // --- CAMPO EMAIL ---
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
                     text = "Correo Electrónico",
@@ -80,15 +76,15 @@ fun LoginScreen(
                         viewModel.username.value = it
                         viewModel.usernameError.value = null
                     },
-                    // SOLUCIÓN AL PROBLEMA DE LAS SUGERENCIAS EXTRAÑAS
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Email,
-                        autoCorrect = false,
                         imeAction = ImeAction.Next
                     ),
                     isError = viewModel.usernameError.value != null,
                     supportingText = {
-                        viewModel.usernameError.value?.let { Text(text = it, color = Color(0xFFFFCDD2)) }
+                        viewModel.usernameError.value?.let {
+                            Text(text = it, color = Color(0xFFFFCDD2))
+                        }
                     },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
@@ -122,14 +118,15 @@ fun LoginScreen(
                         viewModel.passwordError.value = null
                     },
                     visualTransformation = PasswordVisualTransformation(),
-                    // CONFIGURACIÓN DE TECLADO PARA CONTRASEÑA
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Password,
                         imeAction = ImeAction.Done
                     ),
                     isError = viewModel.passwordError.value != null,
                     supportingText = {
-                        viewModel.passwordError.value?.let { Text(text = it, color = Color(0xFFFFCDD2)) }
+                        viewModel.passwordError.value?.let {
+                            Text(text = it, color = Color(0xFFFFCDD2))
+                        }
                     },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
@@ -147,15 +144,19 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // --- BOTÓN ENTRAR (CONECTADO A SUPABASE) ---
+            // Error general
+            viewModel.errorGeneral.value?.let {
+                Text(
+                    text = it,
+                    color = Color(0xFFFFCDD2),
+                    fontSize = 14.sp,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
+
             Button(
-                onClick = {
-                    // Llamamos a la función que busca en la base de datos
-                    viewModel.loginUsuario()
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(55.dp),
+                onClick = { viewModel.loginUsuario() },
+                modifier = Modifier.fillMaxWidth().height(55.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))
             ) {
@@ -166,9 +167,7 @@ fun LoginScreen(
 
             OutlinedButton(
                 onClick = { onNavigateToRegister() },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(55.dp),
+                modifier = Modifier.fillMaxWidth().height(55.dp),
                 shape = RoundedCornerShape(16.dp),
                 border = BorderStroke(2.dp, Color.White)
             ) {

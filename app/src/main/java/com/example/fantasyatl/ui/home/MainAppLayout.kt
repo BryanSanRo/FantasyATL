@@ -1,10 +1,14 @@
 package com.example.fantasyatl.ui.home
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -18,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.fantasyatl.data.SessionManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,6 +32,7 @@ fun MainAppLayout(
     saldo: String,
     seccionSeleccionada: Int,
     onSeccionSelected: (Int) -> Unit,
+    onCerrarSesion: () -> Unit,          // ✅ Nuevo parámetro
     contenido: @Composable (PaddingValues) -> Unit
 ) {
     Scaffold(
@@ -35,11 +41,34 @@ fun MainAppLayout(
                 TopAppBar(
                     title = {
                         Column {
-                            Text(text = nombreUsuario, style = MaterialTheme.typography.titleMedium, color = Color.White)
-                            Text(text = nombreLiga, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.7f))
+                            Text(
+                                text = nombreUsuario,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Color.White
+                            )
+                            Text(
+                                text = nombreLiga,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.White.copy(alpha = 0.7f)
+                            )
                         }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1A1A1A))
+                    // ✅ Botón cerrar sesión en la esquina superior derecha
+                    actions = {
+                        IconButton(onClick = {
+                            SessionManager.cerrarSesion()
+                            onCerrarSesion()
+                        }) {
+                            Icon(
+                                imageVector = Icons.Filled.ExitToApp,
+                                contentDescription = "Cerrar sesión",
+                                tint = Color.White
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color(0xFF1A1A1A)
+                    )
                 )
 
                 TabRow(

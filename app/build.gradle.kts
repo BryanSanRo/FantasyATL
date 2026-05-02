@@ -28,7 +28,7 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -64,6 +64,7 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.material3)
     implementation("org.mindrot:jbcrypt:0.4")
+    implementation("androidx.compose.material:material-icons-extended")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
