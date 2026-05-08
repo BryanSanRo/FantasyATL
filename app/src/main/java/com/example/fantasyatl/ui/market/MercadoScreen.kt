@@ -25,9 +25,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.fantasyatl.ui.plantilla.PlantillaViewModel
 
 @Composable
-fun MercadoScreen(paddingValues: PaddingValues) {
+fun MercadoScreen(paddingValues: PaddingValues, plantillaViewModel: PlantillaViewModel) {
     var tabSeleccionada by remember { mutableIntStateOf(0) }
     val titulosTabs = listOf("En Venta", "Operaciones")
 

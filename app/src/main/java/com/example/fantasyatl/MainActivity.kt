@@ -7,23 +7,27 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.navigation.NavController
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.fantasyatl.data.SessionManager
+import com.example.fantasyatl.ui.alineacion.AlineacionScreen
 import com.example.fantasyatl.ui.auth.LoginScreen
 import com.example.fantasyatl.ui.auth.RegisterScreen
-import com.example.fantasyatl.ui.equipo.EquipoScreen
+import com.example.fantasyatl.ui.auth.RecuperacionScreen
+import com.example.fantasyatl.ui.clasificacion.ClasificacionScreen
+import com.example.fantasyatl.ui.home.HomeDashboardScreen
 import com.example.fantasyatl.ui.home.MainAppLayout
+import com.example.fantasyatl.ui.liga.LigaScreen
+import com.example.fantasyatl.ui.liga.LigaViewModel
 import com.example.fantasyatl.ui.market.MercadoScreen
 import com.example.fantasyatl.ui.perfil.PerfilScreen
+import com.example.fantasyatl.ui.plantilla.PlantillaScreen
+import com.example.fantasyatl.ui.plantilla.PlantillaViewModel
+import com.example.fantasyatl.ui.puntos.PuntosScreen
 import com.example.fantasyatl.ui.theme.FantasyATLTheme
 
 class MainActivity : ComponentActivity() {
@@ -40,68 +44,103 @@ class MainActivity : ComponentActivity() {
 
                     NavHost(navController = navController, startDestination = "login") {
 
+                        // --- LOGIN ---
                         composable("login") {
                             LoginScreen(
                                 onLoginSuccess = {
-                                    navController.navigate("home") {
+                                    navController.navigate("dashboard") {
                                         popUpTo("login") { inclusive = true }
                                     }
                                 },
                                 onNavigateToRegister = {
                                     navController.navigate("register")
+                                },
+                                onOlvidePassword = {
+                                    navController.navigate("recuperacion")
                                 }
                             )
                         }
 
+                        // --- REGISTRO ---
                         composable("register") {
                             RegisterScreen(
-                                onRegisterSuccess = {
-                                    navController.popBackStack()
+                                onRegisterSuccess = { navController.popBackStack() },
+                                onNavigateToLogin = { navController.popBackStack() }
+                            )
+                        }
+
+                        // --- RECUPERACIÓN CONTRASEÑA ---
+                        composable("recuperacion") {
+                            RecuperacionScreen(
+                                onVolver = { navController.popBackStack() }
+                            )
+                        }
+
+                        // --- DASHBOARD (primera pantalla tras login) ---
+                        composable("dashboard") {
+                            HomeDashboardScreen(
+                                onIrAHome = {
+                                    navController.navigate("home")
                                 },
-                                onNavigateToLogin = {
+                                onIrAPerfil = {
+                                    navController.navigate("perfil")
+                                },
+                                onCerrarSesion = {
+                                    SessionManager.cerrarSesion()
                                     navController.navigate("login") {
-                                        popUpTo("register") { inclusive = true }
+                                        popUpTo("dashboard") { inclusive = true }
                                     }
                                 }
                             )
                         }
 
-                        // ✅ CORRECCIÓN: pasamos onCerrarSesion al composable
-                        composable("home") {
-                            AppNavigation(
-                                onCerrarSesion = {
-                                    navController.navigate("login") {
-                                        // Limpia todo el historial
-                                        popUpTo(0) { inclusive = true }
+                        composable("liga") {
+                            val ligaViewModel: LigaViewModel = viewModel()
+                            LigaScreen(
+                                viewModel = ligaViewModel,
+                                onLigaConfigurada = {
+                                    navController.navigate("home") {
+                                        popUpTo("liga") { inclusive = true }
                                     }
                                 }
+                            )
+                        }
+
+                        composable("home") {
+                            var seccionActual by remember { mutableIntStateOf(0) }
+                            val plantillaViewModel: PlantillaViewModel = viewModel()
+
+                            MainAppLayout(
+                                nombreUsuario = SessionManager.usuarioActual?.nombre ?: "Usuario",
+                                nombreLiga = SessionManager.ligaActual?.nombre ?: "Mi Liga",
+                                saldo = "%,d".format(plantillaViewModel.presupuesto.value) + " €",
+                                seccionSeleccionada = seccionActual,
+                                onSeccionSelected = { seccionActual = it },
+                                onBackToDashboard = {
+                                    navController.navigate("dashboard") {
+                                        popUpTo("home") { inclusive = true }
+                                    }
+                                }
+                            ) { paddingValues ->
+                                when (seccionActual) {
+                                    0 -> AlineacionScreen(paddingValues, plantillaViewModel)
+                                    1 -> PlantillaScreen(paddingValues, plantillaViewModel)
+                                    2 -> MercadoScreen(paddingValues, plantillaViewModel)
+                                    3 -> PuntosScreen(paddingValues)
+                                    4 -> ClasificacionScreen(paddingValues)
+                                }
+                            }
+                        }
+
+                        // --- PERFIL (editar cuenta) ---
+                        composable("perfil") {
+                            PerfilScreen(
+                                onVolver = { navController.popBackStack() }
                             )
                         }
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-fun AppNavigation(onCerrarSesion: () -> Unit) {
-    var seccionActual by remember { mutableIntStateOf(0) }
-
-    val nombreUsuario = SessionManager.usuarioActual?.nombre ?: "Usuario"
-
-    MainAppLayout(
-        nombreUsuario = nombreUsuario,
-        nombreLiga = "Liga de Grado Superior",
-        saldo = "15.000.000 €",
-        seccionSeleccionada = seccionActual,
-        onSeccionSelected = { nuevaSeccion -> seccionActual = nuevaSeccion },
-        onCerrarSesion = onCerrarSesion
-    ) { paddingValues ->
-        when (seccionActual) {
-            0 -> PerfilScreen(paddingValues)
-            1 -> EquipoScreen(paddingValues)
-            2 -> MercadoScreen(paddingValues)
         }
     }
 }

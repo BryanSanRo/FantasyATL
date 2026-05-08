@@ -27,7 +27,8 @@ import com.example.fantasyatl.R
 fun LoginScreen(
     viewModel: AuthViewModel = viewModel(),
     onLoginSuccess: () -> Unit,
-    onNavigateToRegister: () -> Unit
+    onNavigateToRegister: () -> Unit,
+    onOlvidePassword: () -> Unit // ✅ Coincide con MainActivity
 ) {
     LaunchedEffect(viewModel.loginExitoso.value) {
         if (viewModel.loginExitoso.value) onLoginSuccess()
@@ -42,11 +43,12 @@ fun LoginScreen(
             .fillMaxSize()
             .background(brush = gradientBackground)
     ) {
+        // Logo
         Image(
             painter = painterResource(id = R.drawable.logo_fantasi),
             contentDescription = "Logo",
             modifier = Modifier
-                .size(220.dp)
+                .size(200.dp)
                 .align(Alignment.TopCenter)
                 .padding(top = 60.dp),
             contentScale = ContentScale.Fit
@@ -59,120 +61,104 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Spacer(modifier = Modifier.height(100.dp))
+            Spacer(modifier = Modifier.height(120.dp))
 
-            // --- CAMPO EMAIL ---
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "Correo Electrónico",
-                    color = Color.White,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
-                )
-                OutlinedTextField(
-                    value = viewModel.username.value,
-                    onValueChange = {
-                        viewModel.username.value = it
-                        viewModel.usernameError.value = null
-                    },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Email,
-                        imeAction = ImeAction.Next
-                    ),
-                    isError = viewModel.usernameError.value != null,
-                    supportingText = {
-                        viewModel.usernameError.value?.let {
-                            Text(text = it, color = Color(0xFFFFCDD2))
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = Color.White.copy(alpha = 0.9f),
-                        unfocusedContainerColor = Color.White.copy(alpha = 0.8f),
-                        focusedTextColor = Color.Black,
-                        unfocusedTextColor = Color.Black,
-                        cursorColor = Color.Black,
-                        focusedBorderColor = Color(0xFF80CBC4),
-                        unfocusedBorderColor = Color.Transparent
-                    )
-                )
-            }
+            // Email
+            CustomLoginField(
+                label = "Correo Electrónico",
+                value = viewModel.username.value,
+                onValueChange = {
+                    viewModel.username.value = it
+                    viewModel.usernameError.value = null
+                },
+                error = viewModel.usernameError.value,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next)
+            )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // --- CAMPO CONTRASEÑA ---
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "Contraseña",
-                    color = Color.White,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
-                )
-                OutlinedTextField(
-                    value = viewModel.password.value,
-                    onValueChange = {
-                        viewModel.password.value = it
-                        viewModel.passwordError.value = null
-                    },
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Password,
-                        imeAction = ImeAction.Done
-                    ),
-                    isError = viewModel.passwordError.value != null,
-                    supportingText = {
-                        viewModel.passwordError.value?.let {
-                            Text(text = it, color = Color(0xFFFFCDD2))
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = Color.White.copy(alpha = 0.9f),
-                        unfocusedContainerColor = Color.White.copy(alpha = 0.8f),
-                        focusedTextColor = Color.Black,
-                        unfocusedTextColor = Color.Black,
-                        cursorColor = Color.Black,
-                        focusedBorderColor = Color(0xFF80CBC4),
-                        unfocusedBorderColor = Color.Transparent
-                    )
-                )
-            }
+            // Contraseña
+            CustomLoginField(
+                label = "Contraseña",
+                value = viewModel.password.value,
+                onValueChange = {
+                    viewModel.password.value = it
+                    viewModel.passwordError.value = null
+                },
+                error = viewModel.passwordError.value,
+                isPassword = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done)
+            )
 
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Error general
-            viewModel.errorGeneral.value?.let {
-                Text(
-                    text = it,
-                    color = Color(0xFFFFCDD2),
-                    fontSize = 14.sp,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-            }
-
-            Button(
-                onClick = { viewModel.loginUsuario() },
-                modifier = Modifier.fillMaxWidth().height(55.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))
+            // Botón Olvidé
+            TextButton(
+                onClick = onOlvidePassword,
+                modifier = Modifier.align(Alignment.End)
             ) {
-                Text(text = "Entrar", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                Text(text = "¿Olvidaste tu contraseña?", color = Color.White.copy(alpha = 0.8f))
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Error de conexión/servidor
+            viewModel.errorGeneral.value?.let {
+                Text(text = it, color = Color(0xFFFFCDD2), modifier = Modifier.padding(bottom = 12.dp))
+            }
+
+            // Botón Entrar
+            if (viewModel.isLoading.value) {
+                CircularProgressIndicator(color = Color.White)
+            } else {
+                Button(
+                    onClick = { viewModel.loginUsuario() },
+                    modifier = Modifier.fillMaxWidth().height(55.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))
+                ) {
+                    Text("Entrar", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Botón Registro
             OutlinedButton(
-                onClick = { onNavigateToRegister() },
+                onClick = onNavigateToRegister,
                 modifier = Modifier.fillMaxWidth().height(55.dp),
                 shape = RoundedCornerShape(16.dp),
                 border = BorderStroke(2.dp, Color.White)
             ) {
-                Text(text = "Crear cuenta nueva", fontSize = 16.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                Text("Crear cuenta nueva", color = Color.White)
             }
         }
+    }
+}
+
+@Composable
+fun CustomLoginField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    error: String?,
+    isPassword: Boolean = false,
+    keyboardOptions: KeyboardOptions
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(text = label, color = Color.White, fontWeight = FontWeight.Bold)
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            isError = error != null,
+            visualTransformation = if (isPassword) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
+            keyboardOptions = keyboardOptions,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = Color.White,
+                unfocusedContainerColor = Color.White.copy(alpha = 0.8f),
+                focusedTextColor = Color.Black,
+                unfocusedTextColor = Color.Black
+            )
+        )
     }
 }

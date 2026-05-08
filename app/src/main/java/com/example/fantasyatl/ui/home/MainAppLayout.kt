@@ -1,28 +1,19 @@
 package com.example.fantasyatl.ui.home
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ExitToApp
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.example.fantasyatl.data.SessionManager
+import androidx.compose.ui.unit.sp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,83 +23,108 @@ fun MainAppLayout(
     saldo: String,
     seccionSeleccionada: Int,
     onSeccionSelected: (Int) -> Unit,
-    onCerrarSesion: () -> Unit,          // ✅ Nuevo parámetro
-    contenido: @Composable (PaddingValues) -> Unit
+    onBackToDashboard: () -> Unit,
+    content: @Composable (PaddingValues) -> Unit
 ) {
     Scaffold(
         topBar = {
-            Column {
-                TopAppBar(
-                    title = {
-                        Column {
-                            Text(
-                                text = nombreUsuario,
-                                style = MaterialTheme.typography.titleMedium,
-                                color = Color.White
-                            )
-                            Text(
-                                text = nombreLiga,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color.White.copy(alpha = 0.7f)
-                            )
-                        }
-                    },
-                    // ✅ Botón cerrar sesión en la esquina superior derecha
-                    actions = {
-                        IconButton(onClick = {
-                            SessionManager.cerrarSesion()
-                            onCerrarSesion()
-                        }) {
-                            Icon(
-                                imageVector = Icons.Filled.ExitToApp,
-                                contentDescription = "Cerrar sesión",
-                                tint = Color.White
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color(0xFF1A1A1A)
-                    )
+            CenterAlignedTopAppBar(
+                title = {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = nombreLiga,
+                            color = Color.White,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = nombreUsuario,
+                            color = Color.White.copy(alpha = 0.7f),
+                            fontSize = 12.sp
+                        )
+                    }
+                },
+                navigationIcon = {
+                    IconButton(
+                        onClick = onBackToDashboard,
+                        modifier = Modifier
+                            .padding(start = 8.dp)
+                            .size(40.dp)
+                            .background(Color.White, shape = CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Volver",
+                            tint = Color.Black,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color(0xFF1A237E)
                 )
-
-                TabRow(
-                    selectedTabIndex = seccionSeleccionada,
-                    containerColor = Color(0xFF1A1A1A),
+            )
+        },
+        bottomBar = {
+            Column {
+                // Barra de presupuesto
+                Surface(
+                    color = Color(0xFF004D40),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Presupuesto: $saldo",
+                        color = Color.White,
+                        modifier = Modifier.padding(6.dp),
+                        textAlign = TextAlign.Center,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    )
+                }
+                // 5 pestañas
+                NavigationBar(
+                    containerColor = Color(0xFF1A237E),
                     contentColor = Color.White
                 ) {
-                    Tab(
+                    NavigationBarItem(
                         selected = seccionSeleccionada == 0,
                         onClick = { onSeccionSelected(0) },
-                        text = { Text("Perfil") }
+                        label = { Text("Alineación", color = Color.White, fontSize = 10.sp) },
+                        icon = { Icon(Icons.Default.List, contentDescription = null, tint = Color.White) },
+                        colors = NavigationBarItemDefaults.colors(indicatorColor = Color(0xFF3949AB))
                     )
-                    Tab(
+                    NavigationBarItem(
                         selected = seccionSeleccionada == 1,
                         onClick = { onSeccionSelected(1) },
-                        text = { Text("Equipo") }
+                        label = { Text("Plantilla", color = Color.White, fontSize = 10.sp) },
+                        icon = { Icon(Icons.Default.Person, contentDescription = null, tint = Color.White) },
+                        colors = NavigationBarItemDefaults.colors(indicatorColor = Color(0xFF3949AB))
                     )
-                    Tab(
+                    NavigationBarItem(
                         selected = seccionSeleccionada == 2,
                         onClick = { onSeccionSelected(2) },
-                        text = { Text("Mercado") }
+                        label = { Text("Mercado", color = Color.White, fontSize = 10.sp) },
+                        icon = { Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = Color.White) },
+                        colors = NavigationBarItemDefaults.colors(indicatorColor = Color(0xFF3949AB))
+                    )
+                    NavigationBarItem(
+                        selected = seccionSeleccionada == 3,
+                        onClick = { onSeccionSelected(3) },
+                        label = { Text("Puntos", color = Color.White, fontSize = 10.sp) },
+                        icon = { Icon(Icons.Default.Star, contentDescription = null, tint = Color.White) },
+                        colors = NavigationBarItemDefaults.colors(indicatorColor = Color(0xFF3949AB))
+                    )
+                    NavigationBarItem(
+                        selected = seccionSeleccionada == 4,
+                        onClick = { onSeccionSelected(4) },
+                        label = { Text("Ranking", color = Color.White, fontSize = 10.sp) },
+                        icon = { Icon(Icons.Default.Menu, contentDescription = null, tint = Color.White) },
+                        colors = NavigationBarItemDefaults.colors(indicatorColor = Color(0xFF3949AB))
                     )
                 }
             }
-        },
-        bottomBar = {
-            Surface(
-                color = Color(0xFF2E7D32),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = "Saldo: $saldo",
-                    modifier = Modifier.padding(12.dp),
-                    color = Color.White,
-                    style = MaterialTheme.typography.titleMedium,
-                    textAlign = TextAlign.Center
-                )
-            }
         }
     ) { paddingValues ->
-        contenido(paddingValues)
+        content(paddingValues)
     }
 }
