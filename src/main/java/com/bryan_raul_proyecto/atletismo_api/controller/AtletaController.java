@@ -1,33 +1,53 @@
 package com.bryan_raul_proyecto.atletismo_api.controller;
 
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.web.bind.annotation.*;
+import com.bryan_raul_proyecto.atletismo_api.dto.AtletaDto;
+import com.bryan_raul_proyecto.atletismo_api.service.AtletaService;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
-import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api")
 public class AtletaController {
 
-    private final JdbcTemplate jdbc;
+    private final AtletaService atletaService;
 
-    public AtletaController(JdbcTemplate jdbc) {
-        this.jdbc = jdbc;
+    public AtletaController(AtletaService atletaService) {
+        this.atletaService = atletaService;
     }
 
     @GetMapping("/atletas")
-    public List<Map<String, Object>> listarAtletas(
-            @RequestParam(defaultValue = "50") int limit,
-            @RequestParam(defaultValue = "0") int offset
+    public List<AtletaDto> listarAtletas(
+            @RequestParam(required = false) String disciplina,
+            @RequestParam(required = false) Integer limit,
+            @RequestParam(required = false) Integer offset
     ) {
-        if (limit > 200) limit = 200;
+        if (limit != null && limit <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "El parametro limit debe ser mayor que 0");
+        }
+        if (offset != null && offset < 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "El parametro offset no puede ser negativo");
+        }
 
-        return jdbc.queryForList("""
-            SELECT id, nombre, apellido, sexo, fecha_nac, nacionalidad
-            FROM atletas
-            ORDER BY apellido, nombre
-            LIMIT ? OFFSET ?
-        """, limit, offset);
+        return atletaService.getAtletas(disciplina, limit, offset);
+    }
+
+    @GetMapping("/atletas/{id}")
+    public AtletaDto getAtleta(@PathVariable UUID id) {
+        AtletaDto atleta = atletaService.getAtletaById(id);
+        if (atleta == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+                    "Atleta no encontrado con id: " + id);
+        }
+        return atleta;
     }
 }

@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 public class ResultadoController {
@@ -21,12 +22,13 @@ public class ResultadoController {
 
     @GetMapping("/api/resultados")
     public List<ResultadoDto> getResultados(
-            @RequestParam(required = false) Long atletaId,
-            @RequestParam(required = false) Long competicionId,
+            @RequestParam(required = false) UUID atletaId,
+            @RequestParam(required = false) UUID competicionId,
             @RequestParam(required = false) Integer limit
     ) {
         if (limit != null && limit <= 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El parámetro limit debe ser mayor que 0");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "El parametro limit debe ser mayor que 0");
         }
 
         return resultadoService.getResultados(atletaId, competicionId, limit);

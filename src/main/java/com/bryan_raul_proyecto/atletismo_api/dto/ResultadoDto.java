@@ -2,13 +2,14 @@ package com.bryan_raul_proyecto.atletismo_api.dto;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.UUID;
 
 public class ResultadoDto {
 
-    private Long resultadoId;
-    private Long atletaId;
+    private UUID resultadoId;
+    private UUID atletaId;
     private String nombre;
-    private String apellido;
+    private String apellidos;
     private String prueba;
     private String competicion;
     private LocalDate fecha;
@@ -23,14 +24,14 @@ public class ResultadoDto {
     public ResultadoDto() {
     }
 
-    public ResultadoDto(Long resultadoId, Long atletaId, String nombre, String apellido,
+    public ResultadoDto(UUID resultadoId, UUID atletaId, String nombre, String apellidos,
                         String prueba, String competicion, LocalDate fecha, String lugar,
                         String tipoPista, String estado, BigDecimal marcaNum, Integer posicion,
                         Boolean recordPersonal, Boolean recordMundial) {
         this.resultadoId = resultadoId;
         this.atletaId = atletaId;
         this.nombre = nombre;
-        this.apellido = apellido;
+        this.apellidos = apellidos;
         this.prueba = prueba;
         this.competicion = competicion;
         this.fecha = fecha;
@@ -43,19 +44,19 @@ public class ResultadoDto {
         this.recordMundial = recordMundial;
     }
 
-    public Long getResultadoId() {
+    public UUID getResultadoId() {
         return resultadoId;
     }
 
-    public void setResultadoId(Long resultadoId) {
+    public void setResultadoId(UUID resultadoId) {
         this.resultadoId = resultadoId;
     }
 
-    public Long getAtletaId() {
+    public UUID getAtletaId() {
         return atletaId;
     }
 
-    public void setAtletaId(Long atletaId) {
+    public void setAtletaId(UUID atletaId) {
         this.atletaId = atletaId;
     }
 
@@ -67,12 +68,12 @@ public class ResultadoDto {
         this.nombre = nombre;
     }
 
-    public String getApellido() {
-        return apellido;
+    public String getApellidos() {
+        return apellidos;
     }
 
-    public void setApellido(String apellido) {
-        this.apellido = apellido;
+    public void setApellidos(String apellidos) {
+        this.apellidos = apellidos;
     }
 
     public String getPrueba() {

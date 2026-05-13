@@ -6,6 +6,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Repository
 public class ResultadoDaoImpl implements ResultadoDao {
@@ -17,13 +18,13 @@ public class ResultadoDaoImpl implements ResultadoDao {
     }
 
     @Override
-    public List<ResultadoDto> findResultados(Long atletaId, Long competicionId, Integer limit) {
+    public List<ResultadoDto> findResultados(UUID atletaId, UUID competicionId, Integer limit) {
         StringBuilder sql = new StringBuilder("""
                 SELECT
                     r.id AS "resultadoId",
                     a.id AS "atletaId",
                     a.nombre AS "nombre",
-                    a.apellido AS "apellido",
+                    a.apellidos AS "apellidos",
                     p.nombre AS "prueba",
                     c.nombre AS "competicion",
                     c.fecha AS "fecha",
@@ -63,10 +64,10 @@ public class ResultadoDaoImpl implements ResultadoDao {
 
         return jdbcTemplate.query(sql.toString(), params.toArray(), (rs, rowNum) -> {
             ResultadoDto dto = new ResultadoDto();
-            dto.setResultadoId(rs.getLong("resultadoId"));
-            dto.setAtletaId(rs.getLong("atletaId"));
+            dto.setResultadoId(rs.getObject("resultadoId", UUID.class));
+            dto.setAtletaId(rs.getObject("atletaId", UUID.class));
             dto.setNombre(rs.getString("nombre"));
-            dto.setApellido(rs.getString("apellido"));
+            dto.setApellidos(rs.getString("apellidos"));
             dto.setPrueba(rs.getString("prueba"));
             dto.setCompeticion(rs.getString("competicion"));
             dto.setFecha(rs.getObject("fecha", java.time.LocalDate.class));
