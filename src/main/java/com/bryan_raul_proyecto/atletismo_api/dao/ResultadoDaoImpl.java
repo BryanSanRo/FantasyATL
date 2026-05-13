@@ -62,7 +62,7 @@ public class ResultadoDaoImpl implements ResultadoDao {
             params.add(limit);
         }
 
-        return jdbcTemplate.query(sql.toString(), params.toArray(), (rs, rowNum) -> {
+        return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> {
             ResultadoDto dto = new ResultadoDto();
             dto.setResultadoId(rs.getObject("resultadoId", UUID.class));
             dto.setAtletaId(rs.getObject("atletaId", UUID.class));
@@ -79,6 +79,6 @@ public class ResultadoDaoImpl implements ResultadoDao {
             dto.setRecordPersonal(rs.getObject("recordPersonal", Boolean.class));
             dto.setRecordMundial(rs.getObject("recordMundial", Boolean.class));
             return dto;
-        });
+        }, params.toArray());
     }
 }
