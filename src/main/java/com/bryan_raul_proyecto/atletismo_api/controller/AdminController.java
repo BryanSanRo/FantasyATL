@@ -1,9 +1,15 @@
 package com.bryan_raul_proyecto.atletismo_api.controller;
 
+import com.bryan_raul_proyecto.atletismo_api.dto.LugarDto;
+import com.bryan_raul_proyecto.atletismo_api.dto.PruebaDto;
+import com.bryan_raul_proyecto.atletismo_api.service.LugarService;
+import com.bryan_raul_proyecto.atletismo_api.service.PruebaService;
 import com.bryan_raul_proyecto.atletismo_api.service.PuntuacionService;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
@@ -19,16 +25,22 @@ import java.util.UUID;
 public class AdminController {
 
     private final PuntuacionService puntuacionService;
+    private final LugarService lugarService;
+    private final PruebaService pruebaService;
 
-    public AdminController(PuntuacionService puntuacionService) {
+    public AdminController(PuntuacionService puntuacionService,
+                           LugarService lugarService,
+                           PruebaService pruebaService) {
         this.puntuacionService = puntuacionService;
+        this.lugarService = lugarService;
+        this.pruebaService = pruebaService;
     }
 
     /**
      * Calcula y persiste los puntos de fantasy de una competicion.
-     * Las invocaciones repetidas no generan duplicados.
+     * Operacion idempotente: invocaciones repetidas no generan duplicados.
      * @param competicionId identificador de la competicion
-     * @return resumen/mapa con el numero de puntuaciones calculadas
+     * @return resumen con el numero de puntuaciones calculadas
      */
     @PostMapping("/calcular-puntos/{competicionId}")
     public Map<String, Object> calcularPuntos(@PathVariable UUID competicionId) {
@@ -41,6 +53,34 @@ public class AdminController {
             );
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
+
+    /**
+     * Crea un nuevo lugar en el sistema.
+     * @param lugar datos del lugar a crear
+     * @return el lugar creado con su identificador
+     */
+    @PostMapping("/lugares")
+    public ResponseEntity<LugarDto> crearLugar(@RequestBody LugarDto lugar) {
+        UUID id = lugarService.crear(lugar);
+        lugar.setId(id);
+        return ResponseEntity.status(HttpStatus.CREATED).body(lugar);
+    }
+
+    /**
+     * Crea una nueva prueba en el sistema.
+     * @param prueba datos de la prueba a crear
+     * @return la prueba creada con su identificador
+     */
+    @PostMapping("/pruebas")
+    public ResponseEntity<PruebaDto> crearPrueba(@RequestBody PruebaDto prueba) {
+        try {
+            UUID id = pruebaService.crear(prueba);
+            prueba.setId(id);
+            return ResponseEntity.status(HttpStatus.CREATED).body(prueba);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
     }
 }
