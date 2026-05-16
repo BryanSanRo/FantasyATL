@@ -23,4 +23,13 @@ public class LugarService {
     public UUID crear(LugarDto lugar) {
         return lugarDao.insertar(lugar);
     }
+
+    /**
+     * Comprueba si existe un lugar con el identificador dado.
+     * @param id identificador del lugar a comprobar
+     * @return true si existe, false en caso contrario
+     */
+    public boolean existe(UUID id) {
+        return lugarDao.existePorId(id);
+    }
 }

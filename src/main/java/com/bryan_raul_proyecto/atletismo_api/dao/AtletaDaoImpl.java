@@ -19,9 +19,11 @@ public class AtletaDaoImpl implements AtletaDao {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    // ============================================================
-    // RowMapper compartido para no duplicar logica de mapeo
-    // ============================================================
+    /**
+     * Convierte una fila del ResultSet en un AtletaDto.
+     * Se extrae como atributo de la clase para reutilizarlo entre los
+     * metodos findAtletas y findById.
+     */
     private final RowMapper<AtletaDto> atletaRowMapper = (rs, rowNum) -> {
         AtletaDto dto = new AtletaDto();
         dto.setId(rs.getObject("id", UUID.class));
@@ -81,5 +83,12 @@ public class AtletaDaoImpl implements AtletaDao {
         } catch (EmptyResultDataAccessException e) {
             return null;
         }
+    }
+
+    @Override
+    public boolean existePorId(UUID id) {
+        String sql = "SELECT COUNT(*) FROM atletas WHERE id = ?";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, id);
+        return count != null && count > 0;
     }
 }

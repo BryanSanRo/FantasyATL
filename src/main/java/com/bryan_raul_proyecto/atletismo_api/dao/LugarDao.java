@@ -12,4 +12,11 @@ public interface LugarDao {
      * @return identificador generado para el nuevo lugar
      */
     UUID insertar(LugarDto lugar);
+
+    /**
+     * Comprueba si existe un lugar con el identificador dado.
+     * @param id identificador del lugar a comprobar
+     * @return true si existe, false en caso contrario
+     */
+    boolean existePorId(UUID id);
 }

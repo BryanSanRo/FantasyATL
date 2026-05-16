@@ -169,7 +169,7 @@ class PuntuacionCalculatorTest {
     @DisplayName("Descripcion de resultado ok incluye posicion y prueba")
     void generarDescripcion_ok_incluyePosicionYPrueba() {
         ResultadoDto r = resultadoOk(1, false, false);
-        r.setPrueba("100m lisos");
+        r.setNombrePrueba("100m lisos");
         String desc = calculator.generarDescripcion(r);
         assertTrue(desc.contains("1"));
         assertTrue(desc.contains("100m lisos"));
@@ -179,7 +179,7 @@ class PuntuacionCalculatorTest {
     @DisplayName("Descripcion con record mundial incluye marca RM")
     void generarDescripcion_recordMundial_incluyeRM() {
         ResultadoDto r = resultadoOk(1, true, true);
-        r.setPrueba("800m");
+        r.setNombrePrueba("800m");
         String desc = calculator.generarDescripcion(r);
         assertTrue(desc.contains("RM"));
     }
@@ -188,7 +188,7 @@ class PuntuacionCalculatorTest {
     @DisplayName("Descripcion con solo record personal incluye marca RP")
     void generarDescripcion_recordPersonal_incluyeRP() {
         ResultadoDto r = resultadoOk(2, true, false);
-        r.setPrueba("800m");
+        r.setNombrePrueba("800m");
         String desc = calculator.generarDescripcion(r);
         assertTrue(desc.contains("RP"));
     }

@@ -7,14 +7,13 @@ import static com.bryan_raul_proyecto.atletismo_api.service.PuntuacionConstantes
 
 /**
  * Calcula los puntos del fantasy a partir de un resultado deportivo.
- * No accede a base de datos ni mantiene estado.
  */
 @Component
 public class PuntuacionCalculator {
 
     /**
      * Calcula los puntos totales del fantasy para un resultado.
-     * @param resultado el resultado a evaluar
+     * @param resultado el resultado a evaluar (no nulo)
      * @return puntos totales (puede ser negativo en caso de penalizacion)
      */
     public int calcular(ResultadoDto resultado) {
@@ -35,8 +34,11 @@ public class PuntuacionCalculator {
     }
 
     /**
-     * Genera una descripcion legible del calculo, util para guardar
-     * en puntos_jornada.descripcion y mostrar al usuario en la app.
+     * Genera una descripcion legible del resultado para guardar en
+     * puntos_jornada.descripcion y mostrar al usuario en la app.
+     * Si el resultado o su estado son nulos devuelve "Sin datos".
+     * @param resultado resultado del que se quiere generar la descripcion
+     * @return cadena descriptiva del resultado, nunca nula
      */
     public String generarDescripcion(ResultadoDto resultado) {
         if (resultado == null || resultado.getEstado() == null) {
@@ -55,8 +57,8 @@ public class PuntuacionCalculator {
         if (pos != null) {
             desc.append(pos).append("º");
         }
-        if (resultado.getPrueba() != null) {
-            desc.append(" en ").append(resultado.getPrueba());
+        if (resultado.getNombrePrueba() != null) {
+            desc.append(" en ").append(resultado.getNombrePrueba());
         }
         if (Boolean.TRUE.equals(resultado.getRecordMundial())) {
             desc.append(" (RM)");
@@ -66,6 +68,7 @@ public class PuntuacionCalculator {
 
         return desc.toString();
     }
+
     /**
      * Calcula los puntos cuando el resultado es valido (estado=ok):
      * puntos por posicion mas bonificaciones por records.
@@ -84,9 +87,10 @@ public class PuntuacionCalculator {
 
         return puntos;
     }
+
     /**
      * Devuelve los puntos correspondientes a una posicion final.
-     * @param posicion posicion final
+     * @param posicion posicion final (puede ser nula)
      * @return puntos por la posicion
      */
     private int puntosPorPosicion(Integer posicion) {

@@ -20,4 +20,11 @@ public interface PruebaDao {
      * @return true si existe una prueba con ese codigo, false en caso contrario
      */
     boolean existeCodigo(String codigo);
+
+    /**
+     * Comprueba si existe una prueba con el identificador dado.
+     * @param id identificador de la prueba a comprobar
+     * @return true si existe, false en caso contrario
+     */
+    boolean existePorId(UUID id);
 }

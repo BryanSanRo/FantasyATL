@@ -6,7 +6,6 @@ import org.springframework.stereotype.Repository;
 
 import java.util.UUID;
 
-
 @Repository
 public class PruebaDaoImpl implements PruebaDao {
 
@@ -37,6 +36,13 @@ public class PruebaDaoImpl implements PruebaDao {
     public boolean existeCodigo(String codigo) {
         String sql = "SELECT COUNT(*) FROM pruebas WHERE codigo = ?";
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, codigo);
+        return count != null && count > 0;
+    }
+
+    @Override
+    public boolean existePorId(UUID id) {
+        String sql = "SELECT COUNT(*) FROM pruebas WHERE id = ?";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, id);
         return count != null && count > 0;
     }
 }

@@ -27,6 +27,15 @@ public class PruebaService {
     }
 
     /**
+     * Comprueba si existe una prueba con el identificador dado.
+     * @param id identificador de la prueba a comprobar
+     * @return true si existe, false en caso contrario
+     */
+    public boolean existe(UUID id) {
+        return pruebaDao.existePorId(id);
+    }
+
+    /**
      * Valida que los campos de la prueba cumplan las reglas de negocio:
      * sector y unidad con valores admitidos, y codigo no duplicado.
      * @param prueba prueba a validar

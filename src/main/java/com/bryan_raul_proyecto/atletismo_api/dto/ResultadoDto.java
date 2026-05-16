@@ -8,23 +8,33 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
+/**
+ * DTO de la entidad Resultado.
+ * Incluye los identificadores foraneos (necesarios para crear nuevos resultados)
+ * y los campos derivados que se rellenan al hacer consultas con JOIN.
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class ResultadoDto {
 
-    private UUID resultadoId;
+    // Campos propios del resultado
+    private UUID id;
     private UUID atletaId;
-    private String nombre;
-    private String apellidos;
-    private String prueba;
-    private String competicion;
-    private LocalDate fecha;
-    private String lugar;
-    private String tipoPista;
+    private UUID competicionId;
+    private UUID pruebaId;
     private String estado;
     private BigDecimal marcaNum;
     private Integer posicion;
     private Boolean recordPersonal;
     private Boolean recordMundial;
+
+    // Campos derivados (solo se rellenan en consultas con JOIN)
+    private String nombreAtleta;
+    private String apellidosAtleta;
+    private String nombrePrueba;
+    private String nombreCompeticion;
+    private LocalDate fechaCompeticion;
+    private String nombreLugar;
+    private String tipoPista;
 }

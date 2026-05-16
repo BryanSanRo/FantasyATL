@@ -30,4 +30,11 @@ public class LugarDaoImpl implements LugarDao {
                 lugar.getPais()
         );
     }
+
+    @Override
+    public boolean existePorId(UUID id) {
+        String sql = "SELECT COUNT(*) FROM lugares WHERE id = ?";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, id);
+        return count != null && count > 0;
+    }
 }

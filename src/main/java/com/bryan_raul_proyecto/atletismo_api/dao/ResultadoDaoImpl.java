@@ -21,14 +21,16 @@ public class ResultadoDaoImpl implements ResultadoDao {
     public List<ResultadoDto> findResultados(UUID atletaId, UUID competicionId, Integer limit) {
         StringBuilder sql = new StringBuilder("""
                 SELECT
-                    r.id AS "resultadoId",
+                    r.id AS "id",
                     a.id AS "atletaId",
-                    a.nombre AS "nombre",
-                    a.apellidos AS "apellidos",
-                    p.nombre AS "prueba",
-                    c.nombre AS "competicion",
-                    c.fecha AS "fecha",
-                    l.nombre AS "lugar",
+                    c.id AS "competicionId",
+                    p.id AS "pruebaId",
+                    a.nombre AS "nombreAtleta",
+                    a.apellidos AS "apellidosAtleta",
+                    p.nombre AS "nombrePrueba",
+                    c.nombre AS "nombreCompeticion",
+                    c.fecha AS "fechaCompeticion",
+                    l.nombre AS "nombreLugar",
                     c.tipo_pista AS "tipoPista",
                     r.estado AS "estado",
                     r.marca_num AS "marcaNum",
@@ -64,14 +66,16 @@ public class ResultadoDaoImpl implements ResultadoDao {
 
         return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> {
             ResultadoDto dto = new ResultadoDto();
-            dto.setResultadoId(rs.getObject("resultadoId", UUID.class));
+            dto.setId(rs.getObject("id", UUID.class));
             dto.setAtletaId(rs.getObject("atletaId", UUID.class));
-            dto.setNombre(rs.getString("nombre"));
-            dto.setApellidos(rs.getString("apellidos"));
-            dto.setPrueba(rs.getString("prueba"));
-            dto.setCompeticion(rs.getString("competicion"));
-            dto.setFecha(rs.getObject("fecha", java.time.LocalDate.class));
-            dto.setLugar(rs.getString("lugar"));
+            dto.setCompeticionId(rs.getObject("competicionId", UUID.class));
+            dto.setPruebaId(rs.getObject("pruebaId", UUID.class));
+            dto.setNombreAtleta(rs.getString("nombreAtleta"));
+            dto.setApellidosAtleta(rs.getString("apellidosAtleta"));
+            dto.setNombrePrueba(rs.getString("nombrePrueba"));
+            dto.setNombreCompeticion(rs.getString("nombreCompeticion"));
+            dto.setFechaCompeticion(rs.getObject("fechaCompeticion", java.time.LocalDate.class));
+            dto.setNombreLugar(rs.getString("nombreLugar"));
             dto.setTipoPista(rs.getString("tipoPista"));
             dto.setEstado(rs.getString("estado"));
             dto.setMarcaNum(rs.getBigDecimal("marcaNum"));
@@ -80,5 +84,28 @@ public class ResultadoDaoImpl implements ResultadoDao {
             dto.setRecordMundial(rs.getObject("recordMundial", Boolean.class));
             return dto;
         }, params.toArray());
+    }
+
+    @Override
+    public UUID insertar(ResultadoDto resultado) {
+        String sql = """
+                INSERT INTO resultados (atleta_id, competicion_id, prueba_id,
+                                        estado, marca_num, posicion,
+                                        record_personal, record_mundial)
+                VALUES (?, ?, ?, ?::estado_resultado, ?, ?, ?, ?)
+                RETURNING id
+                """;
+        return jdbcTemplate.queryForObject(
+                sql,
+                UUID.class,
+                resultado.getAtletaId(),
+                resultado.getCompeticionId(),
+                resultado.getPruebaId(),
+                resultado.getEstado(),
+                resultado.getMarcaNum(),
+                resultado.getPosicion(),
+                resultado.getRecordPersonal(),
+                resultado.getRecordMundial()
+        );
     }
 }
