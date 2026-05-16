@@ -22,4 +22,14 @@ public interface ResultadoDao {
      * @return identificador generado para el nuevo resultado
      */
     UUID insertar(ResultadoDto resultado);
+
+    /**
+     * Comprueba si ya existe un resultado para la combinacion
+     * de atleta, competicion y prueba dada.
+     * @param atletaId identificador del atleta
+     * @param competicionId identificador de la competicion
+     * @param pruebaId identificador de la prueba
+     * @return true si existe, false en caso contrario
+     */
+    boolean existeAtletaCompeticionPrueba(UUID atletaId, UUID competicionId, UUID pruebaId);
 }

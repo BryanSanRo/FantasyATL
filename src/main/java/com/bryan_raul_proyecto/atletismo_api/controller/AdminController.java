@@ -73,9 +73,13 @@ public class AdminController {
      */
     @PostMapping("/lugares")
     public ResponseEntity<LugarDto> crearLugar(@RequestBody LugarDto lugar) {
-        UUID id = lugarService.crear(lugar);
-        lugar.setId(id);
-        return ResponseEntity.status(HttpStatus.CREATED).body(lugar);
+        try {
+            UUID id = lugarService.crear(lugar);
+            lugar.setId(id);
+            return ResponseEntity.status(HttpStatus.CREATED).body(lugar);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
     }
 
     /**

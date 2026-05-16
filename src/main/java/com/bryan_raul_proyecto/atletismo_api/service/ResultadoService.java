@@ -86,5 +86,15 @@ public class ResultadoService {
                     "No existe una prueba con id: '" + resultado.getPruebaId() + "'"
             );
         }
+        if (resultadoDao.existeAtletaCompeticionPrueba(
+                resultado.getAtletaId(),
+                resultado.getCompeticionId(),
+                resultado.getPruebaId())) {
+            throw new IllegalArgumentException(
+                    "Ya existe un resultado para el atleta '" + resultado.getAtletaId() +
+                            "' en la competicion '" + resultado.getCompeticionId() +
+                            "' y prueba '" + resultado.getPruebaId() + "'"
+            );
+        }
     }
 }

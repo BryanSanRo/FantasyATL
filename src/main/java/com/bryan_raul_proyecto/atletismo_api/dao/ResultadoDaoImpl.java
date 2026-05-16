@@ -108,4 +108,16 @@ public class ResultadoDaoImpl implements ResultadoDao {
                 resultado.getRecordMundial()
         );
     }
+
+    @Override
+    public boolean existeAtletaCompeticionPrueba(UUID atletaId, UUID competicionId, UUID pruebaId) {
+        String sql = """
+            SELECT COUNT(*) FROM resultados
+            WHERE atleta_id = ?
+              AND competicion_id = ?
+              AND prueba_id = ?
+            """;
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, atletaId, competicionId, pruebaId);
+        return count != null && count > 0;
+    }
 }

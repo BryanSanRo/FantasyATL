@@ -58,5 +58,11 @@ public class CompeticionService {
                     "No existe un lugar con id: '" + competicion.getLugarId() + "'"
             );
         }
+        if (competicionDao.existeNombreFecha(competicion.getNombre(), competicion.getFecha())) {
+            throw new IllegalArgumentException(
+                    "Ya existe una competicion con nombre '" + competicion.getNombre() +
+                            "' en la fecha " + competicion.getFecha()
+            );
+        }
     }
 }

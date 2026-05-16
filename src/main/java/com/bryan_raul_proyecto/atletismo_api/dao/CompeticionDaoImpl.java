@@ -4,6 +4,7 @@ import com.bryan_raul_proyecto.atletismo_api.dto.CompeticionDto;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 
@@ -39,6 +40,13 @@ public class CompeticionDaoImpl implements CompeticionDao {
     public boolean existePorId(UUID id) {
         String sql = "SELECT COUNT(*) FROM competiciones WHERE id = ?";
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, id);
+        return count != null && count > 0;
+    }
+
+    @Override
+    public boolean existeNombreFecha(String nombre, LocalDate fecha) {
+        String sql = "SELECT COUNT(*) FROM competiciones WHERE nombre = ? AND fecha = ?";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, nombre, fecha);
         return count != null && count > 0;
     }
 }

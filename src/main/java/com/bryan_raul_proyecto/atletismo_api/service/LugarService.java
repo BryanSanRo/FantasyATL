@@ -16,11 +16,12 @@ public class LugarService {
     }
 
     /**
-     * Crea un nuevo lugar en el sistema.
+     * Crea un nuevo lugar en el sistema tras validar sus campos obligatorios.
      * @param lugar datos del lugar a crear
      * @return identificador generado del lugar creado
      */
     public UUID crear(LugarDto lugar) {
+        validar(lugar);
         return lugarDao.insertar(lugar);
     }
 
@@ -31,5 +32,21 @@ public class LugarService {
      */
     public boolean existe(UUID id) {
         return lugarDao.existePorId(id);
+    }
+
+    /**
+     * Valida las reglas de negocio del lugar.
+     * @param lugar lugar a validar
+     */
+    private void validar(LugarDto lugar) {
+        if (lugar.getNombre() == null || lugar.getNombre().isBlank()) {
+            throw new IllegalArgumentException("El nombre del lugar es obligatorio");
+        }
+        if (lugar.getCiudad() == null || lugar.getCiudad().isBlank()) {
+            throw new IllegalArgumentException("La ciudad del lugar es obligatoria");
+        }
+        if (lugar.getPais() == null || lugar.getPais().isBlank()) {
+            throw new IllegalArgumentException("El pais del lugar es obligatorio");
+        }
     }
 }
