@@ -38,13 +38,6 @@ class PuntuacionCalculatorTest {
     }
 
     @Test
-    @DisplayName("Posicion 1 con record mundial devuelve 45 puntos")
-    void calcular_posicion1ConRecordMundial_devuelve45() {
-        ResultadoDto r = resultadoOk(1, false, true);
-        assertEquals(45, calculator.calcular(r));
-    }
-
-    @Test
     @DisplayName("Posicion 1 con ambos records devuelve 50 puntos")
     void calcular_posicion1ConAmbosRecords_devuelve50() {
         ResultadoDto r = resultadoOk(1, true, true);

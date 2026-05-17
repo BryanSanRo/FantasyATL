@@ -71,6 +71,12 @@ public class ResultadoService {
                 );
             }
         }
+        if (Boolean.TRUE.equals(resultado.getRecordMundial())
+                && !Boolean.TRUE.equals(resultado.getRecordPersonal())) {
+            throw new IllegalArgumentException(
+                    "Un resultado con record mundial debe marcar tambien record personal"
+            );
+        }
         if (!atletaService.existe(resultado.getAtletaId())) {
             throw new IllegalArgumentException(
                     "No existe un atleta con id: '" + resultado.getAtletaId() + "'"
