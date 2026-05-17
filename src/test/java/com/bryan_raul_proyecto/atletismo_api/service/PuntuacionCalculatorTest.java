@@ -38,7 +38,7 @@ class PuntuacionCalculatorTest {
     }
 
     @Test
-    @DisplayName("Posicion 1 con ambos records devuelve 50 puntos")
+    @DisplayName("Posicion 1 con record personal y mundial devuelve 50 puntos")
     void calcular_posicion1ConAmbosRecords_devuelve50() {
         ResultadoDto r = resultadoOk(1, true, true);
         assertEquals(50, calculator.calcular(r));
@@ -57,6 +57,30 @@ class PuntuacionCalculatorTest {
     }
 
     @Test
+    @DisplayName("Posicion 4 devuelve 12 puntos")
+    void calcular_posicion4_devuelve12() {
+        assertEquals(12, calculator.calcular(resultadoOk(4, false, false)));
+    }
+
+    @Test
+    @DisplayName("Posicion 5 devuelve 10 puntos")
+    void calcular_posicion5_devuelve10() {
+        assertEquals(10, calculator.calcular(resultadoOk(5, false, false)));
+    }
+
+    @Test
+    @DisplayName("Posicion 6 devuelve 8 puntos")
+    void calcular_posicion6_devuelve8() {
+        assertEquals(8, calculator.calcular(resultadoOk(6, false, false)));
+    }
+
+    @Test
+    @DisplayName("Posicion 7 devuelve 6 puntos")
+    void calcular_posicion7_devuelve6() {
+        assertEquals(6, calculator.calcular(resultadoOk(7, false, false)));
+    }
+
+    @Test
     @DisplayName("Posicion 8 devuelve 4 puntos")
     void calcular_posicion8_devuelve4() {
         assertEquals(4, calculator.calcular(resultadoOk(8, false, false)));
@@ -72,6 +96,27 @@ class PuntuacionCalculatorTest {
     @DisplayName("Posicion 50 devuelve 1 punto")
     void calcular_posicion50_devuelve1() {
         assertEquals(1, calculator.calcular(resultadoOk(50, false, false)));
+    }
+
+    @Test
+    @DisplayName("Posicion 5 con record personal devuelve 15 puntos")
+    void calcular_posicion5ConRecordPersonal_devuelve15() {
+        ResultadoDto r = resultadoOk(5, true, false);
+        assertEquals(15, calculator.calcular(r));
+    }
+
+    @Test
+    @DisplayName("Posicion 8 con record personal devuelve 9 puntos")
+    void calcular_posicion8ConRecordPersonal_devuelve9() {
+        ResultadoDto r = resultadoOk(8, true, false);
+        assertEquals(9, calculator.calcular(r));
+    }
+
+    @Test
+    @DisplayName("Posicion 50 con record personal devuelve 6 puntos")
+    void calcular_posicion50ConRecordPersonal_devuelve6() {
+        ResultadoDto r = resultadoOk(50, true, false);
+        assertEquals(6, calculator.calcular(r));
     }
 
     // ============================================================
