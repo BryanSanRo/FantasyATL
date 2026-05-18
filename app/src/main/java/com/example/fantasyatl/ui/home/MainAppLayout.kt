@@ -67,7 +67,6 @@ fun MainAppLayout(
         },
         bottomBar = {
             Column {
-                // Barra de presupuesto
                 Surface(
                     color = Color(0xFF004D40),
                     modifier = Modifier.fillMaxWidth()
@@ -81,7 +80,7 @@ fun MainAppLayout(
                         fontSize = 13.sp
                     )
                 }
-                // 5 pestañas
+
                 NavigationBar(
                     containerColor = Color(0xFF1A237E),
                     contentColor = Color.White

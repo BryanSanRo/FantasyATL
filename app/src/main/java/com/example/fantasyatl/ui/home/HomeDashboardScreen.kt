@@ -6,7 +6,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Star
@@ -23,229 +24,298 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.fantasyatl.data.SessionManager
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeDashboardScreen(
-    onIrAHome: () -> Unit,
-    onIrAPerfil: () -> Unit,
-    onCerrarSesion: () -> Unit
+    dashboardViewModel: HomeDashboardViewModel,
+    onNavigateToMiAlineacion: () -> Unit,
+    onNavigateToClasificacion: () -> Unit,
+    onNavigateToPerfil: () -> Unit,
+    onNavigateToCrearLiga: () -> Unit,
+    onLogout: () -> Unit
 ) {
-    val usuario = SessionManager.usuarioActual
-    val gradient = Brush.verticalGradient(
-        colors = listOf(Color(0xFF1A237E), Color(0xFF121212))
+    // Fondo azul marino degradado premium de tu app
+    val premiumBackground = Brush.verticalGradient(
+        colors = listOf(Color(0xFF111E47), Color(0xFF0A1128))
     )
 
-    Box(modifier = Modifier.fillMaxSize().background(brush = gradient)) {
+    val nombreUsuario = SessionManager.usuarioActual?.nombre ?: "Usuario"
 
-        // --- BOTÓN CERRAR SESIÓN arriba a la derecha ---
-        IconButton(
-            onClick = onCerrarSesion,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(top = 48.dp, end = 16.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.ExitToApp,
-                contentDescription = "Cerrar sesión",
-                tint = Color.White,
-                modifier = Modifier.size(28.dp)
-            )
-        }
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 20.dp)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Spacer(modifier = Modifier.height(60.dp))
-
-            // --- SALUDO ---
-            Text(
-                text = "¡Hola, ${usuario?.nombre ?: "Usuario"}!",
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(brush = premiumBackground)
+    ) {
+        if (dashboardViewModel.isLoading.value) {
+            CircularProgressIndicator(
                 color = Color.White,
-                fontSize = 32.sp,
-                fontWeight = FontWeight.ExtraBold
+                modifier = Modifier.align(Alignment.Center)
             )
-            Text(
-                text = "Bienvenido a Fantasy ATL",
-                color = Color.White.copy(alpha = 0.7f),
-                fontSize = 16.sp
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // --- TARJETA MI LIGA ---
-            DashboardCard(
-                title = "Mi Liga",
-                subtitle = "Entrar a Equipo y Mercado",
-                icon = Icons.Default.PlayArrow,
-                containerColor = Color(0xFF2E7D32),
-                onClick = { onIrAHome() }
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // --- TARJETAS PERFIL Y CLASIFICACIÓN ---
-            Row(modifier = Modifier.fillMaxWidth()) {
-                Box(modifier = Modifier.weight(1f)) {
-                    DashboardCard(
-                        title = "Mi Perfil",
-                        subtitle = "Editar cuenta",
-                        icon = Icons.Default.Person,
-                        containerColor = Color(0xFF3949AB),
-                        onClick = onIrAPerfil
-                    )
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-                Box(modifier = Modifier.weight(1f)) {
-                    DashboardCard(
-                        title = "Clasificación",
-                        subtitle = "Próximamente",
-                        icon = Icons.Default.Star,
-                        containerColor = Color(0xFFF9A825),
-                        onClick = { }
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // --- RESUMEN EQUIPO ---
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color.White.copy(alpha = 0.05f)
-                ),
-                shape = RoundedCornerShape(16.dp)
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.Start
             ) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Text(
-                        "Resumen de tu equipo",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
-                    )
-                    HorizontalDivider(
-                        modifier = Modifier.padding(vertical = 12.dp),
-                        color = Color.White.copy(alpha = 0.1f)
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                Spacer(modifier = Modifier.height(56.dp))
+
+                // 👤 CABECERA: SALUDO Y BOTÓN DE SALIDA
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Column {
+                        Text(
+                            text = "¡Hola,\n${nombreUsuario.lowercase()}!",
+                            fontSize = 38.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            lineHeight = 40.sp
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Bienvenido a Fantasy ATL",
+                            fontSize = 16.sp,
+                            color = Color.White.copy(alpha = 0.6f)
+                        )
+                    }
+
+                    // Botón de Cerrar Sesión minimalista
+                    IconButton(
+                        onClick = onLogout,
+                        modifier = Modifier
+                            .background(Color.White.copy(alpha = 0.12f), shape = RoundedCornerShape(12.dp))
+                            .size(48.dp)
                     ) {
-                        InfoItem("Puntos", "124")
-                        InfoItem("Posición", "4º")
-                        InfoItem("Presupuesto", "15M")
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                            contentDescription = "Cerrar Sesión",
+                            tint = Color.White
+                        )
                     }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(32.dp))
 
-            // --- PRÓXIMAS PRUEBAS ---
-            Text(
-                "Próximas Pruebas",
-                color = Color.White,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.height(12.dp))
+                // 🟢 BOTÓN 1: MI LIGA (Verde)
+                FullWidthDashboardCard(
+                    title = "Mi Liga",
+                    subtitle = "Entrar a Equipo y Mercado",
+                    backgroundColor = Color(0xFF238636),
+                    icon = Icons.Default.PlayArrow,
+                    onClick = {
+                        dashboardViewModel.verificarYEntrarALigas {
+                            onNavigateToMiAlineacion()
+                        }
+                    }
+                )
 
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color.White.copy(alpha = 0.05f)
-                ),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    PruebaItem("10:30", "100m Lisos", "J. Bolt, M. Jacobs")
-                    HorizontalDivider(
-                        modifier = Modifier.padding(vertical = 8.dp),
-                        color = Color.White.copy(alpha = 0.1f)
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // ➕ BOTÓN 2: CONFIGURAR LIGA (Gris translúcido)
+                FullWidthDashboardCard(
+                    title = "Configurar Liga",
+                    subtitle = "Crear o introducir código de acceso",
+                    backgroundColor = Color.White.copy(alpha = 0.08f),
+                    contentColor = Color.White,
+                    icon = Icons.Default.AddCircle,
+                    onClick = onNavigateToCrearLiga
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 📊 FILA EN GRID: PERFIL Y CLASIFICACIÓN
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // 🔵 CARD: MI PERFIL
+                    GridDashboardCard(
+                        title = "Mi Perfil",
+                        subtitle = "Editar cuenta",
+                        backgroundColor = Color(0xFF2B4C7E),
+                        icon = Icons.Default.Person,
+                        onClick = onNavigateToPerfil,
+                        modifier = Modifier.weight(1f)
                     )
-                    PruebaItem("11:15", "Salto de Altura", "G. Tamberi, M. Barshim")
-                    HorizontalDivider(
-                        modifier = Modifier.padding(vertical = 8.dp),
-                        color = Color.White.copy(alpha = 0.1f)
+
+                    // 🟠 CARD: CLASIFICACIÓN
+                    GridDashboardCard(
+                        title = "Clasificación",
+                        subtitle = "Tabla de posiciones",
+                        backgroundColor = Color(0xFFFFA000),
+                        icon = Icons.Default.Star,
+                        onClick = {
+                            dashboardViewModel.verificarYEntrarALigas {
+                                onNavigateToClasificacion()
+                            }
+                        },
+                        modifier = Modifier.weight(1f)
                     )
-                    PruebaItem("12:00", "400m Vallas", "K. Warholm, R. Benjamin")
                 }
-            }
 
-            Spacer(modifier = Modifier.height(40.dp))
+                Spacer(modifier = Modifier.height(28.dp))
+
+                // ⏱️ NUEVA SECCIÓN: PRÓXIMAS PRUEBAS DEL DÍA
+                Text(
+                    text = "Próximas Pruebas",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    modifier = Modifier.padding(bottom = 14.dp)
+                )
+
+                // Tarjeta contenedora oscura para la lista de pruebas
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF161F3D)) // Azul oscuro integrado
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp)
+                    ) {
+                        // Evento 1
+                        PruebaRowItem(hora = "10:30", nombre = "100m Lisos", atletas = "Atletas: J. Bolt, M. Jacobs")
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 14.dp), color = Color.White.copy(alpha = 0.08f))
+
+                        // Evento 2
+                        PruebaRowItem(hora = "11:15", nombre = "Salto de Altura", atletas = "Atletas: G. Tamberi, M. Barshim")
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 14.dp), color = Color.White.copy(alpha = 0.08f))
+
+                        // Evento 3
+                        PruebaRowItem(hora = "12:00", nombre = "400m Vallas", atletas = "Atletas: K. Warholm, R. Benjamin")
+                    }
+                }
+
+                // ⚠️ MENSAJE DE ERROR FLOTANTE (Si existe)
+                dashboardViewModel.avisoError.value?.let { mensaje ->
+                    Spacer(modifier = Modifier.height(20.dp))
+                    Text(
+                        text = mensaje,
+                        color = Color(0xFFFF8A80),
+                        fontSize = 14.sp,
+                        textAlign = TextAlign.Center,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(40.dp))
+            }
         }
     }
 }
 
+// --- COMPONENTE AUXILIAR PARA CADA PRUEBA DE LA LISTA ---
 @Composable
-fun DashboardCard(
-    title: String,
-    subtitle: String,
-    icon: ImageVector,
-    containerColor: Color,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(110.dp),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = containerColor),
-        onClick = onClick
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column {
-                Text(title, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                Text(subtitle, color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp)
-            }
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(32.dp),
-                tint = Color.White
-            )
-        }
-    }
-}
-
-@Composable
-fun PruebaItem(hora: String, prueba: String, atletas: String) {
+fun PruebaRowItem(hora: String, nombre: String, atletas: String) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Hora destacada en color dorado
         Text(
             text = hora,
-            color = Color(0xFFF9A825),
+            fontSize = 15.sp,
             fontWeight = FontWeight.Bold,
-            fontSize = 14.sp,
-            modifier = Modifier.width(50.dp)
+            color = Color(0xFFFFB300),
+            modifier = Modifier.width(65.dp)
         )
-        Column(modifier = Modifier.padding(start = 8.dp)) {
-            Text(text = prueba, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+
+        // Detalles de la competición
+        Column {
             Text(
-                text = "Atletas: $atletas",
-                color = Color.White.copy(alpha = 0.6f),
-                fontSize = 12.sp
+                text = nombre,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = atletas,
+                fontSize = 13.sp,
+                color = Color.White.copy(alpha = 0.5f)
             )
         }
     }
 }
 
+// --- COMPONENTES BASE DE TARJETAS ---
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun InfoItem(label: String, value: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(label, color = Color.White.copy(alpha = 0.6f), fontSize = 12.sp)
-        Text(value, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+fun FullWidthDashboardCard(
+    title: String,
+    subtitle: String,
+    backgroundColor: Color,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    contentColor: Color = Color.White
+) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = backgroundColor)
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(horizontal = 24.dp, vertical = 20.dp)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(text = title, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = contentColor)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(text = subtitle, fontSize = 14.sp, color = contentColor.copy(alpha = 0.7f))
+            }
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(26.dp)
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun GridDashboardCard(
+    title: String,
+    subtitle: String,
+    backgroundColor: Color,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        onClick = onClick,
+        modifier = modifier.height(135.dp),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = backgroundColor)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(20.dp)
+        ) {
+            Column(modifier = Modifier.align(Alignment.TopStart)) {
+                Text(text = title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(text = subtitle, fontSize = 13.sp, color = Color.White.copy(alpha = 0.7f))
+            }
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier
+                    .size(24.dp)
+                    .align(Alignment.BottomEnd)
+            )
+        }
     }
 }

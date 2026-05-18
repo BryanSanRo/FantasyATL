@@ -4,8 +4,10 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,7 +30,7 @@ fun LoginScreen(
     viewModel: AuthViewModel = viewModel(),
     onLoginSuccess: () -> Unit,
     onNavigateToRegister: () -> Unit,
-    onOlvidePassword: () -> Unit // ✅ Coincide con MainActivity
+    onOlvidePassword: () -> Unit
 ) {
     LaunchedEffect(viewModel.loginExitoso.value) {
         if (viewModel.loginExitoso.value) onLoginSuccess()
@@ -50,18 +52,19 @@ fun LoginScreen(
             modifier = Modifier
                 .size(200.dp)
                 .align(Alignment.TopCenter)
-                .padding(top = 60.dp),
+                .padding(top = 40.dp),
             contentScale = ContentScale.Fit
         )
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 32.dp),
+                .padding(horizontal = 32.dp)
+                .verticalScroll(rememberScrollState()), // Añadido para evitar desbordamiento con teclado
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Spacer(modifier = Modifier.height(120.dp))
+            Spacer(modifier = Modifier.height(160.dp))
 
             // Email
             CustomLoginField(
@@ -75,7 +78,7 @@ fun LoginScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next)
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             // Contraseña
             CustomLoginField(
@@ -98,11 +101,16 @@ fun LoginScreen(
                 Text(text = "¿Olvidaste tu contraseña?", color = Color.White.copy(alpha = 0.8f))
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             // Error de conexión/servidor
             viewModel.errorGeneral.value?.let {
-                Text(text = it, color = Color(0xFFFFCDD2), modifier = Modifier.padding(bottom = 12.dp))
+                Text(
+                    text = it,
+                    color = Color(0xFFFFCDD2),
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
             }
 
             // Botón Entrar
@@ -128,8 +136,10 @@ fun LoginScreen(
                 shape = RoundedCornerShape(16.dp),
                 border = BorderStroke(2.dp, Color.White)
             ) {
-                Text("Crear cuenta nueva", color = Color.White)
+                Text("Crear cuenta nueva", color = Color.White, fontWeight = FontWeight.Bold)
             }
+
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
@@ -144,20 +154,39 @@ fun CustomLoginField(
     keyboardOptions: KeyboardOptions
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        Text(text = label, color = Color.White, fontWeight = FontWeight.Bold)
+        Text(
+            text = label,
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 4.dp)
+        )
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
             isError = error != null,
+            supportingText = {
+                if (error != null) {
+                    Text(
+                        text = error,
+                        color = Color(0xFFFFCDD2),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            },
             visualTransformation = if (isPassword) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
             keyboardOptions = keyboardOptions,
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = Color.White,
                 unfocusedContainerColor = Color.White.copy(alpha = 0.8f),
+                errorContainerColor = Color.White.copy(alpha = 0.9f),
                 focusedTextColor = Color.Black,
-                unfocusedTextColor = Color.Black
+                unfocusedTextColor = Color.Black,
+                errorTextColor = Color.Black,
+                focusedBorderColor = Color(0xFF80CBC4),
+                unfocusedBorderColor = Color.Transparent
             )
         )
     }

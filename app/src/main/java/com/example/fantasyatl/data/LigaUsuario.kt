@@ -1,11 +1,13 @@
 package com.example.fantasyatl.data
+
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerialName
 
 @Serializable
 data class LigaUsuario(
-    val id: String? = null,
-    val liga_id: String,
-    val email_usuario: String,
-    val puntos: Int = 0,
-    val presupuesto: Int = 15000000
+    val id: String,
+    @SerialName("liga_id") val ligaId: String,
+    @SerialName("email_usuario") val emailUsuario: String,
+    val puntos: Int,
+    val presupuesto: Int
 )

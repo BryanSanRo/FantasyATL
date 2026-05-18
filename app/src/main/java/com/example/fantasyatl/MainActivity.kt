@@ -4,22 +4,29 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.fantasyatl.data.SessionManager
 import com.example.fantasyatl.ui.alineacion.AlineacionScreen
 import com.example.fantasyatl.ui.auth.LoginScreen
 import com.example.fantasyatl.ui.auth.RegisterScreen
 import com.example.fantasyatl.ui.auth.RecuperacionScreen
-import com.example.fantasyatl.ui.clasificacion.ClasificacionScreen
+import com.example.fantasyatl.ui.clasificaion.ClasificacionScreen
 import com.example.fantasyatl.ui.home.HomeDashboardScreen
+import com.example.fantasyatl.ui.home.HomeDashboardViewModel
 import com.example.fantasyatl.ui.home.MainAppLayout
 import com.example.fantasyatl.ui.liga.LigaScreen
 import com.example.fantasyatl.ui.liga.LigaViewModel
@@ -44,7 +51,7 @@ class MainActivity : ComponentActivity() {
 
                     NavHost(navController = navController, startDestination = "login") {
 
-                        // --- LOGIN ---
+                        // --- 1. LOGIN ---
                         composable("login") {
                             LoginScreen(
                                 onLoginSuccess = {
@@ -52,16 +59,12 @@ class MainActivity : ComponentActivity() {
                                         popUpTo("login") { inclusive = true }
                                     }
                                 },
-                                onNavigateToRegister = {
-                                    navController.navigate("register")
-                                },
-                                onOlvidePassword = {
-                                    navController.navigate("recuperacion")
-                                }
+                                onNavigateToRegister = { navController.navigate("register") },
+                                onOlvidePassword = { navController.navigate("recuperacion") }
                             )
                         }
 
-                        // --- REGISTRO ---
+                        // --- 2. REGISTRO ---
                         composable("register") {
                             RegisterScreen(
                                 onRegisterSuccess = { navController.popBackStack() },
@@ -69,23 +72,30 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        // --- RECUPERACIÓN CONTRASEÑA ---
+                        // --- 3. RECUPERACIÓN ---
                         composable("recuperacion") {
-                            RecuperacionScreen(
-                                onVolver = { navController.popBackStack() }
-                            )
+                            RecuperacionScreen(onVolver = { navController.popBackStack() })
                         }
 
-                        // --- DASHBOARD (primera pantalla tras login) ---
+                        // --- 4. DASHBOARD CON EL FORMATO ORIGINAL CORREGIDO ---
                         composable("dashboard") {
+                            val dashboardViewModel: HomeDashboardViewModel = viewModel()
                             HomeDashboardScreen(
-                                onIrAHome = {
-                                    navController.navigate("home")
+                                dashboardViewModel = dashboardViewModel,
+                                onNavigateToMiAlineacion = {
+                                    navController.navigate("home?section=0")
                                 },
-                                onIrAPerfil = {
+                                onNavigateToClasificacion = {
+                                    navController.navigate("home?section=4")
+                                },
+                                onNavigateToPerfil = {
                                     navController.navigate("perfil")
                                 },
-                                onCerrarSesion = {
+
+                                onNavigateToCrearLiga = {
+                                    navController.navigate("liga")
+                                },
+                                onLogout = {
                                     SessionManager.cerrarSesion()
                                     navController.navigate("login") {
                                         popUpTo("dashboard") { inclusive = true }
@@ -94,20 +104,25 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
+                        // --- 5. PANTALLA DE CREAR/UNIRSE A LIGA ---
                         composable("liga") {
                             val ligaViewModel: LigaViewModel = viewModel()
                             LigaScreen(
-                                viewModel = ligaViewModel,
-                                onLigaConfigurada = {
-                                    navController.navigate("home") {
+                                onVolverAlDashboard = {
+                                    navController.navigate("dashboard") {
                                         popUpTo("liga") { inclusive = true }
                                     }
                                 }
                             )
                         }
 
-                        composable("home") {
-                            var seccionActual by remember { mutableIntStateOf(0) }
+                        // --- 6. HOME (Panel Multi-Pestaña)
+                        composable(
+                            route = "home?section={section}",
+                            arguments = listOf(navArgument("section") { type = NavType.IntType; defaultValue = 0 })
+                        ) { backStackEntry ->
+                            val sectionParam = backStackEntry.arguments?.getInt("section") ?: 0
+                            var seccionActual by remember { mutableIntStateOf(sectionParam) }
                             val plantillaViewModel: PlantillaViewModel = viewModel()
 
                             MainAppLayout(
@@ -118,25 +133,25 @@ class MainActivity : ComponentActivity() {
                                 onSeccionSelected = { seccionActual = it },
                                 onBackToDashboard = {
                                     navController.navigate("dashboard") {
-                                        popUpTo("home") { inclusive = true }
+                                        popUpTo("home?section={section}") { inclusive = true }
                                     }
                                 }
                             ) { paddingValues ->
-                                when (seccionActual) {
-                                    0 -> AlineacionScreen(paddingValues, plantillaViewModel)
-                                    1 -> PlantillaScreen(paddingValues, plantillaViewModel)
-                                    2 -> MercadoScreen(paddingValues, plantillaViewModel)
-                                    3 -> PuntosScreen(paddingValues)
-                                    4 -> ClasificacionScreen(paddingValues)
+                                Box(modifier = Modifier.padding(paddingValues)) {
+                                    when (seccionActual) {
+                                        0 -> AlineacionScreen(PaddingValues(0.dp), plantillaViewModel)
+                                        1 -> PlantillaScreen(PaddingValues(0.dp), plantillaViewModel)
+                                        2 -> MercadoScreen(PaddingValues(0.dp), plantillaViewModel)
+                                        3 -> PuntosScreen(PaddingValues(0.dp))
+                                        4 -> ClasificacionScreen()
+                                    }
                                 }
                             }
                         }
 
-                        // --- PERFIL (editar cuenta) ---
+                        // --- 7. PERFIL ---
                         composable("perfil") {
-                            PerfilScreen(
-                                onVolver = { navController.popBackStack() }
-                            )
+                            PerfilScreen(onVolver = { navController.popBackStack() })
                         }
                     }
                 }

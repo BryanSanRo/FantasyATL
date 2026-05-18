@@ -31,19 +31,28 @@ class AuthViewModel : ViewModel() {
     var loginExitoso = mutableStateOf(false)
     var registroExitoso = mutableStateOf(false)
 
-    // ✅ Mensaje de error general (no ligado a un campo)
+    // Mensaje de error general (no ligado a un campo)
     var errorGeneral = mutableStateOf<String?>(null)
 
     fun validateLogin(): Boolean {
         var isValid = true
+
+        // Validar Email independientemente
         if (username.value.isBlank()) {
             usernameError.value = "El email es obligatorio"
             isValid = false
-        } else usernameError.value = null
+        } else {
+            usernameError.value = null
+        }
+
+        // Validar Contraseña independientemente
         if (password.value.isBlank()) {
             passwordError.value = "La contraseña es obligatoria"
             isValid = false
-        } else passwordError.value = null
+        } else {
+            passwordError.value = null
+        }
+
         return isValid
     }
 
@@ -84,7 +93,6 @@ class AuthViewModel : ViewModel() {
                 SupabaseClient.client.from("usuarios").insert(nuevoUsuario)
                 registroExitoso.value = true
             } catch (e: Exception) {
-                // ✅ Nunca mostramos e.message directamente
                 errorGeneral.value = traducirError(e)
             } finally {
                 isLoading.value = false
@@ -114,7 +122,6 @@ class AuthViewModel : ViewModel() {
                     }
                 }
             } catch (e: Exception) {
-                // ✅ Nunca mostramos e.message directamente
                 errorGeneral.value = traducirError(e)
             } finally {
                 isLoading.value = false
@@ -122,7 +129,6 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    // ✅ Traduce errores técnicos a mensajes amigables sin exponer datos sensibles
     private fun traducirError(e: Exception): String {
         val mensaje = e.message ?: return "Error desconocido"
         return when {

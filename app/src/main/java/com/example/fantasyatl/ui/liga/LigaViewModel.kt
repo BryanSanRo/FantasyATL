@@ -9,184 +9,139 @@ import com.example.fantasyatl.data.SessionManager
 import com.example.fantasyatl.data.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.launch
+import java.util.UUID
+import kotlin.random.Random
 
 class LigaViewModel : ViewModel() {
 
-    var ligaActual = mutableStateOf<Liga?>(null)
-    var isLoading = mutableStateOf(false)
-    var errorGeneral = mutableStateOf<String?>(null)
-    var exitoso = mutableStateOf<String?>(null)
-
-    // Campos crear liga
     var nombreLiga = mutableStateOf("")
-    var nombreLigaError = mutableStateOf<String?>(null)
+    var codigoLiga = mutableStateOf("")
 
-    // Campos unirse
-    var codigoUnirse = mutableStateOf("")
-    var codigoError = mutableStateOf<String?>(null)
+    var isLoading = mutableStateOf(false)
+    var errorMessage = mutableStateOf<String?>(null)
 
-    // -------------------------------------------------------
-    // Comprobar si el usuario ya tiene liga
-    // -------------------------------------------------------
-    fun comprobarLiga() {
-        val email = SessionManager.usuarioActual?.email ?: return
-        viewModelScope.launch {
-            isLoading.value = true
-            try {
-                // 1. Buscamos si existe una relación en liga_usuarios
-                val membresia = SupabaseClient.client.from("liga_usuarios")
-                    .select {
-                        filter { eq("email_usuario", email) }
-                    }.decodeSingleOrNull<LigaUsuario>()
+    var ligaActual = mutableStateOf<Liga?>(null)
 
-                if (membresia != null) {
-                    // 2. Si existe, obtenemos los datos completos de esa liga
-                    val liga = SupabaseClient.client.from("ligas")
-                        .select {
-                            filter { eq("id", membresia.liga_id) }
-                        }.decodeSingleOrNull<Liga>()
-
-                    ligaActual.value = liga
-                    // CORRECCIÓN: Actualizamos el SessionManager para que el resto de la app sepa la liga
-                    SessionManager.ligaActual = liga
-                } else {
-                    ligaActual.value = null
-                    SessionManager.ligaActual = null
-                }
-            } catch (e: Exception) {
-                errorGeneral.value = "Error al comprobar la liga"
-            } finally {
-                isLoading.value = false
-            }
-        }
-        // ERROR ELIMINADO: SessionManager.ligaActual = liga (estaba fuera del scope y mal referenciado)
+    private fun generarCodigoUnico(): String {
+        val caracteres = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        return (1..6)
+            .map { Random.nextInt(0, caracteres.length) }
+            .map { caracteres[it] }
+            .joinToString("")
     }
 
-    // -------------------------------------------------------
-    // Crear liga
-    // -------------------------------------------------------
-    fun crearLiga() {
-        if (nombreLiga.value.isBlank()) {
-            nombreLigaError.value = "El nombre es obligatorio"
+    fun crearLiga(onSuccess: () -> Unit) {
+        val nombre = nombreLiga.value.trim()
+        val emailDeAdmin = SessionManager.usuarioActual?.email
+
+        if (nombre.isEmpty()) {
+            errorMessage.value = "El nombre de la liga no puede estar vacío"
             return
         }
-        val email = SessionManager.usuarioActual?.email ?: return
+        if (emailDeAdmin == null) {
+            errorMessage.value = "Error de sesión: No se detectó un usuario activo"
+            return
+        }
+
+        isLoading.value = true
+        errorMessage.value = null
 
         viewModelScope.launch {
-            isLoading.value = true
-            errorGeneral.value = null
             try {
-                // Generar código único de 6 letras
-                val codigo = (1..6)
-                    .map { ('A'..'Z').random() }
-                    .joinToString("")
+                val nuevoLigaId = UUID.randomUUID().toString()
+                val nuevoMembresiaId = UUID.randomUUID().toString()
+                val codigoGenerado = generarCodigoUnico()
 
                 val nuevaLiga = Liga(
-                    nombre = nombreLiga.value,
-                    codigo = codigo,
-                    admin_email = email
+                    id = nuevoLigaId,
+                    nombre = nombre,
+                    codigo = codigoGenerado,
+                    adminEmail = emailDeAdmin,
+                    maxJugadores = 20
                 )
 
-                // Insertar liga y obtener el objeto creado (incluyendo el ID generado)
-                val ligaCreada = SupabaseClient.client.from("ligas")
-                    .insert(nuevaLiga) { select() }
-                    .decodeSingle<Liga>()
+                SupabaseClient.client.from("ligas").insert(nuevaLiga)
 
-                // Unir al creador automáticamente a la tabla intermedia
-                SupabaseClient.client.from("liga_usuarios").insert(
-                    LigaUsuario(
-                        liga_id = ligaCreada.id!!,
-                        email_usuario = email
-                    )
+                val membresiaAdmin = LigaUsuario(
+                    id = nuevoMembresiaId,
+                    ligaId = nuevoLigaId,
+                    emailUsuario = emailDeAdmin,
+                    puntos = 0,
+                    presupuesto = 1000000
                 )
 
-                ligaActual.value = ligaCreada
-                SessionManager.ligaActual = ligaCreada // Sincronizamos sesión
-                exitoso.value = "Liga creada. Código: ${ligaCreada.codigo}"
+                SupabaseClient.client.from("liga_usuarios").insert(membresiaAdmin)
 
+                SessionManager.ligaActual = nuevaLiga
+                ligaActual.value = nuevaLiga
+
+                onSuccess()
             } catch (e: Exception) {
-                errorGeneral.value = "Error al crear la liga"
+                e.printStackTrace()
+                errorMessage.value = "No se pudo registrar la liga en la base de datos"
             } finally {
                 isLoading.value = false
             }
         }
     }
 
-    // -------------------------------------------------------
-    // Unirse a liga por código
-    // -------------------------------------------------------
-    fun unirseALiga() {
-        if (codigoUnirse.value.isBlank()) {
-            codigoError.value = "Introduce el código"
+    fun unirseALiga(onSuccess: () -> Unit) {
+        val codigo = codigoLiga.value.trim().uppercase()
+        val userEmail = SessionManager.usuarioActual?.email
+
+        if (codigo.isEmpty()) {
+            errorMessage.value = "Introduce el código de la liga"
             return
         }
-        val email = SessionManager.usuarioActual?.email ?: return
+        if (userEmail == null) {
+            errorMessage.value = "Usuario no autenticado"
+            return
+        }
+
+        isLoading.value = true
+        errorMessage.value = null
 
         viewModelScope.launch {
-            isLoading.value = true
-            errorGeneral.value = null
-            codigoError.value = null
             try {
-                val liga = SupabaseClient.client.from("ligas")
+                val ligaEncontrada = SupabaseClient.client.from("ligas")
                     .select {
-                        filter { eq("codigo", codigoUnirse.value.uppercase().trim()) }
+                        filter { eq("codigo", codigo) }
                     }.decodeSingleOrNull<Liga>()
 
-                if (liga == null) {
-                    codigoError.value = "Código incorrecto"
+                if (ligaEncontrada == null) {
+                    errorMessage.value = "El código de liga introducido no existe"
                     return@launch
                 }
 
-                // Comprobar si ya está en la liga
-                val yaEsMiembro = SupabaseClient.client.from("liga_usuarios")
+                val miembroExistente = SupabaseClient.client.from("liga_usuarios")
                     .select {
                         filter {
-                            eq("liga_id", liga.id!!)
-                            eq("email_usuario", email)
+                            eq("liga_id", ligaEncontrada.id)
+                            eq("email_usuario", userEmail)
                         }
                     }.decodeSingleOrNull<LigaUsuario>()
 
-                if (yaEsMiembro != null) {
-                    codigoError.value = "Ya eres miembro de esta liga"
+                if (miembroExistente != null) {
+                    errorMessage.value = "Ya formas parte de esta liga"
                     return@launch
                 }
 
-                // Unirse insertando en liga_usuarios
-                SupabaseClient.client.from("liga_usuarios").insert(
-                    LigaUsuario(
-                        liga_id = liga.id!!,
-                        email_usuario = email
-                    )
+                val nuevaMembresia = LigaUsuario(
+                    id = UUID.randomUUID().toString(),
+                    ligaId = ligaEncontrada.id,
+                    emailUsuario = userEmail,
+                    puntos = 0,
+                    presupuesto = 1000000
                 )
+                SupabaseClient.client.from("liga_usuarios").insert(nuevaMembresia)
 
-                ligaActual.value = liga
-                SessionManager.ligaActual = liga // Sincronizamos sesión
-                exitoso.value = "Te has unido a ${liga.nombre}"
+                SessionManager.ligaActual = ligaEncontrada
+                ligaActual.value = ligaEncontrada
 
+                onSuccess()
             } catch (e: Exception) {
-                errorGeneral.value = "Error al unirse a la liga"
-            } finally {
-                isLoading.value = false
-            }
-        }
-    }
-
-    fun salirDeLiga() {
-        val email = SessionManager.usuarioActual?.email ?: return
-        val liga = ligaActual.value ?: return
-        viewModelScope.launch {
-            isLoading.value = true
-            try {
-                SupabaseClient.client.from("liga_usuarios").delete {
-                    filter {
-                        eq("liga_id", liga.id!!)
-                        eq("email_usuario", email)
-                    }
-                }
-                ligaActual.value = null
-                SessionManager.ligaActual = null // Limpiamos sesión
-            } catch (e: Exception) {
-                errorGeneral.value = "Error al salir de la liga"
+                e.printStackTrace()
+                errorMessage.value = "Error al unirse a la liga"
             } finally {
                 isLoading.value = false
             }

@@ -27,8 +27,12 @@ fun RecuperacionScreen(
         colors = listOf(Color(0xFF1A237E), Color(0xFF004D40))
     )
 
+    // ✅ Navegar cuando sea exitoso
     LaunchedEffect(viewModel.exitoso.value) {
-        if (viewModel.exitoso.value) onVolver()
+        if (viewModel.exitoso.value) {
+            viewModel.resetear()
+            onVolver()
+        }
     }
 
     Box(
@@ -47,9 +51,14 @@ fun RecuperacionScreen(
                 modifier = Modifier.padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                // ✅ Indicador de pasos
+                PasoIndicador(pasoActual = viewModel.paso.value)
+
+                Spacer(modifier = Modifier.height(20.dp))
+
                 when (viewModel.paso.value) {
 
-                    // PASO 1 — Introducir email
+                    // --- PASO 1: Email ---
                     1 -> {
                         Text(
                             "¿Olvidaste tu contraseña?",
@@ -71,21 +80,27 @@ fun RecuperacionScreen(
                             onValueChange = {
                                 viewModel.emailRecuperacion.value = it
                                 viewModel.emailError.value = null
+                                viewModel.errorGeneral.value = null
                             },
                             label = { Text("Correo electrónico") },
                             isError = viewModel.emailError.value != null,
                             supportingText = {
-                                viewModel.emailError.value?.let { Text(it, color = Color.Red) }
+                                viewModel.emailError.value?.let {
+                                    Text(it, color = Color.Red)
+                                }
                             },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Email
+                            ),
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(12.dp),
+                            singleLine = true
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))
 
                         if (viewModel.isLoading.value) {
-                            CircularProgressIndicator()
+                            CircularProgressIndicator(color = Color(0xFF1A237E))
                         } else {
                             Button(
                                 onClick = { viewModel.solicitarRecuperacion() },
@@ -95,35 +110,49 @@ fun RecuperacionScreen(
                                     containerColor = Color(0xFF2E7D32)
                                 )
                             ) {
-                                Text("Enviar código", color = Color.White, fontWeight = FontWeight.Bold)
+                                Text(
+                                    "Enviar código al email",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
                         }
                     }
 
-                    // PASO 2 — Introducir código
+                    // --- PASO 2: Código ---
                     2 -> {
                         Text(
-                            "Introduce el código",
+                            "Revisa tu email",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        // ⚠️ Solo para desarrollo — mostrar el token
-                        if (viewModel.tokenGenerado.value.isNotBlank()) {
-                            Card(
-                                colors = CardDefaults.cardColors(
-                                    containerColor = Color(0xFFFFF9C4)
-                                ),
-                                modifier = Modifier.fillMaxWidth()
+                        // ✅ Confirmación de envío — sin mostrar el código
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = Color(0xFFE8F5E9)
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = "⚠️ Código (solo desarrollo):\n${viewModel.tokenGenerado.value}",
-                                    modifier = Modifier.padding(12.dp),
-                                    fontSize = 14.sp,
-                                    color = Color(0xFF5D4037),
-                                    textAlign = TextAlign.Center
-                                )
+                                Text("✅ ", fontSize = 20.sp)
+                                Column {
+                                    Text(
+                                        "Código enviado a:",
+                                        fontSize = 12.sp,
+                                        color = Color.Gray
+                                    )
+                                    Text(
+                                        viewModel.emailRecuperacion.value,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF2E7D32)
+                                    )
+                                }
                             }
                         }
 
@@ -132,23 +161,48 @@ fun RecuperacionScreen(
                         OutlinedTextField(
                             value = viewModel.tokenIntroducido.value,
                             onValueChange = {
-                                viewModel.tokenIntroducido.value = it
-                                viewModel.tokenError.value = null
+                                if (it.length <= 6) {
+                                    viewModel.tokenIntroducido.value = it
+                                    viewModel.tokenError.value = null
+                                }
                             },
                             label = { Text("Código de 6 dígitos") },
                             isError = viewModel.tokenError.value != null,
                             supportingText = {
-                                viewModel.tokenError.value?.let { Text(it, color = Color.Red) }
+                                viewModel.tokenError.value?.let {
+                                    Text(it, color = Color.Red)
+                                }
                             },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Number
+                            ),
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(12.dp),
+                            singleLine = true
                         )
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // ✅ Reenviar código
+                        TextButton(
+                            onClick = {
+                                viewModel.tokenIntroducido.value = ""
+                                viewModel.tokenError.value = null
+                                viewModel.intentosFallidos.value = 0
+                                viewModel.paso.value = 1
+                            }
+                        ) {
+                            Text(
+                                "¿No recibiste el código? Reenviar",
+                                color = Color(0xFF1A237E),
+                                fontSize = 13.sp
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
 
                         if (viewModel.isLoading.value) {
-                            CircularProgressIndicator()
+                            CircularProgressIndicator(color = Color(0xFF1A237E))
                         } else {
                             Button(
                                 onClick = { viewModel.verificarToken() },
@@ -156,19 +210,32 @@ fun RecuperacionScreen(
                                 shape = RoundedCornerShape(12.dp),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = Color(0xFF2E7D32)
-                                )
+                                ),
+                                // ✅ Desactivar si demasiados intentos
+                                enabled = viewModel.intentosFallidos.value < 5
                             ) {
-                                Text("Verificar código", color = Color.White, fontWeight = FontWeight.Bold)
+                                Text(
+                                    "Verificar código",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
                         }
                     }
 
-                    // PASO 3 — Nueva contraseña
+                    // --- PASO 3: Nueva contraseña ---
                     3 -> {
                         Text(
                             "Nueva contraseña",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            "Mínimo 8 caracteres, un número y un símbolo",
+                            fontSize = 12.sp,
+                            color = Color.Gray,
+                            textAlign = TextAlign.Center
                         )
                         Spacer(modifier = Modifier.height(16.dp))
 
@@ -181,12 +248,17 @@ fun RecuperacionScreen(
                             label = { Text("Nueva contraseña") },
                             isError = viewModel.nuevaPasswordError.value != null,
                             supportingText = {
-                                viewModel.nuevaPasswordError.value?.let { Text(it, color = Color.Red) }
+                                viewModel.nuevaPasswordError.value?.let {
+                                    Text(it, color = Color.Red)
+                                }
                             },
                             visualTransformation = PasswordVisualTransformation(),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password
+                            ),
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(12.dp),
+                            singleLine = true
                         )
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -200,18 +272,23 @@ fun RecuperacionScreen(
                             label = { Text("Confirmar contraseña") },
                             isError = viewModel.confirmarPasswordError.value != null,
                             supportingText = {
-                                viewModel.confirmarPasswordError.value?.let { Text(it, color = Color.Red) }
+                                viewModel.confirmarPasswordError.value?.let {
+                                    Text(it, color = Color.Red)
+                                }
                             },
                             visualTransformation = PasswordVisualTransformation(),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password
+                            ),
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(12.dp),
+                            singleLine = true
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))
 
                         if (viewModel.isLoading.value) {
-                            CircularProgressIndicator()
+                            CircularProgressIndicator(color = Color(0xFF1A237E))
                         } else {
                             Button(
                                 onClick = { viewModel.cambiarPassword() },
@@ -221,7 +298,11 @@ fun RecuperacionScreen(
                                     containerColor = Color(0xFF2E7D32)
                                 )
                             ) {
-                                Text("Guardar contraseña", color = Color.White, fontWeight = FontWeight.Bold)
+                                Text(
+                                    "Guardar nueva contraseña",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
                         }
                     }
@@ -229,13 +310,76 @@ fun RecuperacionScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
+                // Error general
                 viewModel.errorGeneral.value?.let {
-                    Text(it, color = Color.Red, fontSize = 13.sp, textAlign = TextAlign.Center)
+                    Text(
+                        it,
+                        color = Color.Red,
+                        fontSize = 13.sp,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
 
-                TextButton(onClick = onVolver) {
-                    Text("Volver al login", color = Color(0xFF1A237E))
+                // Botón volver
+                TextButton(onClick = {
+                    viewModel.resetear()
+                    onVolver()
+                }) {
+                    Text("← Volver al login", color = Color(0xFF1A237E))
                 }
+            }
+        }
+    }
+}
+
+// ✅ Indicador visual de los 3 pasos
+@Composable
+fun PasoIndicador(pasoActual: Int) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        listOf("Email", "Código", "Password").forEachIndexed { index, label ->
+            val paso = index + 1
+            val activo = paso == pasoActual
+            val completado = paso < pasoActual
+
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = when {
+                        completado -> Color(0xFF2E7D32)
+                        activo -> Color(0xFF1A237E)
+                        else -> Color.LightGray
+                    },
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = if (completado) "✓" else "$paso",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+                Text(
+                    label,
+                    fontSize = 10.sp,
+                    color = if (activo) Color(0xFF1A237E) else Color.Gray
+                )
+            }
+
+            if (index < 2) {
+                HorizontalDivider(
+                    modifier = Modifier
+                        .width(40.dp)
+                        .padding(bottom = 16.dp),
+                    color = if (completado) Color(0xFF2E7D32) else Color.LightGray,
+                    thickness = 2.dp
+                )
             }
         }
     }

@@ -1,152 +1,120 @@
-package com.example.fantasyatl.ui.clasificacion
+package com.example.fantasyatl.ui.clasificaion
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.fantasyatl.data.LigaUsuario
-import com.example.fantasyatl.data.SessionManager
-import com.example.fantasyatl.data.SupabaseClient
-import com.example.fantasyatl.data.Usuario
-import io.github.jan.supabase.postgrest.from
-import kotlinx.coroutines.launch
-import kotlinx.serialization.Serializable
-
-@Serializable
-data class ClasificacionEntry(
-    val email: String,
-    val nombre: String,
-    val puntos: Int
-)
-
-class ClasificacionViewModel : ViewModel() {
-    var clasificacion = mutableStateOf<List<ClasificacionEntry>>(emptyList())
-    var isLoading = mutableStateOf(false)
-
-    fun cargarClasificacion() {
-        val ligaId = SessionManager.ligaActual?.id ?: return
-
-        viewModelScope.launch {
-            isLoading.value = true
-            try {
-                val miembros = SupabaseClient.client.from("liga_usuarios")
-                    .select { filter { eq("liga_id", ligaId) } }
-                    .decodeList<LigaUsuario>()
-
-                val entries = miembros.map { miembro ->
-                    val usuario = SupabaseClient.client.from("usuarios")
-                        .select { filter { eq("email", miembro.email_usuario) } }
-                        .decodeSingleOrNull<Usuario>()
-
-                    ClasificacionEntry(
-                        email = miembro.email_usuario,
-                        nombre = "${usuario?.nombre ?: "?"} ${usuario?.apellidos ?: ""}",
-                        puntos = miembro.puntos
-                    )
-                }.sortedByDescending { it.puntos }
-
-                clasificacion.value = entries
-
-            } catch (e: Exception) {
-                // Error silencioso
-            } finally {
-                isLoading.value = false
-            }
-        }
-    }
-}
 
 @Composable
 fun ClasificacionScreen(
-    paddingValues: PaddingValues,
+    // 🌟 CORRECCIÓN CRUCIAL: El tipo debe ser ClasificacionViewModel, no PaddingValues
     viewModel: ClasificacionViewModel = viewModel()
 ) {
-    val emailActual = SessionManager.usuarioActual?.email ?: ""
+    // Al entrar a la pestaña, se descargan los datos en tiempo real de Supabase
+    LaunchedEffect(Unit) {
+        viewModel.cargarClasificacion()
+    }
 
-    LaunchedEffect(Unit) { viewModel.cargarClasificacion() }
+    val gradientBackground = Brush.verticalGradient(
+        colors = listOf(Color(0xFF1A237E), Color(0xFF121212))
+    )
 
-    LazyColumn(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(paddingValues)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+            .background(brush = gradientBackground)
+            .padding(16.dp)
     ) {
-        item {
-            Text("Clasificación", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-            Text(
-                SessionManager.ligaActual?.nombre ?: "",
-                fontSize = 14.sp,
-                color = Color.Gray
-            )
-        }
+        Spacer(modifier = Modifier.height(24.dp))
 
-        if (viewModel.isLoading.value) {
-            item { CircularProgressIndicator() }
+        Text(
+            text = "Clasificación General",
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
+        if (viewModel.isLoading.value) { //
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = Color.White)
+            }
+        } else if (viewModel.clasificacion.value.isEmpty()) { //
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("No hay jugadores registrados en esta liga.", color = Color.Gray)
+            }
         } else {
-            itemsIndexed(viewModel.clasificacion.value) { index, entry ->
-                val esTuyo = entry.email == emailActual
-                val medallaColor = when (index) {
-                    0 -> Color(0xFFFFD700)   // Oro
-                    1 -> Color(0xFFC0C0C0)   // Plata
-                    2 -> Color(0xFFCD7F32)   // Bronce
-                    else -> Color.Gray
-                }
+            // Lista scrollable con las posiciones de los usuarios
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                itemsIndexed(viewModel.clasificacion.value) { index, jugador -> //
+                    val posicion = index + 1
 
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (esTuyo) Color(0xFFE8F5E9) else MaterialTheme.colorScheme.surface
-                    )
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                    // Color especial si estás en el podio (Top 3)
+                    val cardColor = when (posicion) {
+                        1 -> Color(0xFFFFD700) // Oro
+                        2 -> Color(0xFFC0C0C0) // Plata
+                        3 -> Color(0xFFCD7F32) // Bronce
+                        else -> Color.White.copy(alpha = 0.15f) //
+                    }
+
+                    val textColor = if (posicion <= 3) Color.Black else Color.White //
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(), //
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = cardColor)
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            // Posición
-                            Text(
-                                text = when (index) {
-                                    0 -> "🥇"
-                                    1 -> "🥈"
-                                    2 -> "🥉"
-                                    else -> "${index + 1}º"
-                                },
-                                fontSize = 20.sp,
-                                modifier = Modifier.width(40.dp)
-                            )
-                            Column(modifier = Modifier.padding(start = 8.dp)) {
+                        Row(
+                            modifier = Modifier
+                                .padding(16.dp)
+                                .fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    entry.nombre,
-                                    fontWeight = if (esTuyo) FontWeight.ExtraBold else FontWeight.Bold,
-                                    fontSize = 15.sp
+                                    text = "#$posicion",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = textColor,
+                                    modifier = Modifier.width(45.dp)
                                 )
-                                if (esTuyo) {
-                                    Text("(Tú)", fontSize = 11.sp, color = Color(0xFF2E7D32))
+                                Column {
+                                    Text(
+                                        text = jugador.nombre,
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = textColor
+                                    )
+                                    Text(
+                                        text = jugador.email,
+                                        fontSize = 12.sp,
+                                        color = textColor.copy(alpha = 0.7f)
+                                    )
                                 }
                             }
+                            Text(
+                                text = "${jugador.puntos} pts",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = textColor
+                            )
                         }
-                        Text(
-                            "${entry.puntos} pts",
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 18.sp,
-                            color = Color(0xFF1A237E)
-                        )
                     }
                 }
             }

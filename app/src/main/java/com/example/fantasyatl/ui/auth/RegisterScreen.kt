@@ -1,5 +1,6 @@
 package com.example.fantasyatl.ui.auth
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -11,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -141,6 +143,7 @@ fun RegisterScreen(
                 }
             }
 
+            // --- CAMPO CONTRASEÑA CON REQUISITOS EN EL FOCO ---
             CustomInputField(
                 label = "Contraseña",
                 value = viewModel.password.value,
@@ -150,6 +153,11 @@ fun RegisterScreen(
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Password,
                     imeAction = ImeAction.Next
+                ),
+                requirements = listOf(
+                    "• Mínimo 8 caracteres",
+                    "• Al menos un número (0-9)",
+                    "• Al menos un símbolo especial (@#\$%^&+=!/¿?)"
                 )
             )
 
@@ -218,8 +226,11 @@ fun CustomInputField(
     error: String? = null,
     isPassword: Boolean = false,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    requirements: List<String>? = null,
     onValueChange: (String) -> Unit
 ) {
+    var isFocused by remember { mutableStateOf(false) }
+
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
         Text(
             text = label,
@@ -237,7 +248,11 @@ fun CustomInputField(
             },
             visualTransformation = if (isPassword) PasswordVisualTransformation()
             else VisualTransformation.None,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .onFocusChanged { focusState ->
+                    isFocused = focusState.isFocused // Detectamos si tiene el foco
+                },
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = Color.White.copy(alpha = 0.9f),
@@ -249,5 +264,29 @@ fun CustomInputField(
                 unfocusedBorderColor = Color.Transparent
             )
         )
+
+        AnimatedVisibility(visible = isFocused && !requirements.isNullOrEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp, start = 6.dp)
+            ) {
+                Text(
+                    text = "Requisitos de la contraseña:",
+                    color = Color(0xFFB0BEC5), // Un tono gris claro legible
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 2.dp)
+                )
+                requirements?.forEach { requisito ->
+                    Text(
+                        text = requisito,
+                        color = Color.White.copy(alpha = 0.85f),
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(vertical = 1.dp)
+                    )
+                }
+            }
+        }
     }
 }
