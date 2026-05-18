@@ -4,147 +4,151 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.fantasyatl.data.Liga
-import com.example.fantasyatl.data.LigaUsuario
-import com.example.fantasyatl.data.SessionManager
-import com.example.fantasyatl.data.SupabaseClient
+import com.example.fantasyatl.data.dataSession.SessionManager
+import com.example.fantasyatl.data.dataSession.SupabaseClient
+import com.example.fantasyatl.data.ligadata.LigaUsuario
+import com.example.fantasyatl.data.dataPlantilla.PlantillaEntry
+import com.example.fantasyatl.data.dataAtleta.Atleta
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.launch
 import java.util.UUID
-import kotlin.random.Random
 
 class LigaViewModel : ViewModel() {
 
     var nombreLiga = mutableStateOf("")
     var codigoLiga = mutableStateOf("")
-
-    var isLoading = mutableStateOf(false)
     var errorMessage = mutableStateOf<String?>(null)
+    var isLoading = mutableStateOf(false)
 
-    var ligaActual = mutableStateOf<Liga?>(null)
+    fun crearLiga(onExito: () -> Unit) {
+        val emailAdmin = SessionManager.usuarioActual?.email ?: run {
+            errorMessage.value = "No hay un usuario activo en la sesión"
+            return
+        }
 
-    private fun generarCodigoUnico(): String {
-        val caracteres = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-        return (1..6)
-            .map { Random.nextInt(0, caracteres.length) }
-            .map { caracteres[it] }
-            .joinToString("")
-    }
-
-    fun crearLiga(onSuccess: () -> Unit) {
         val nombre = nombreLiga.value.trim()
-        val emailDeAdmin = SessionManager.usuarioActual?.email
-
-        if (nombre.isEmpty()) {
+        if (nombre.isBlank()) {
             errorMessage.value = "El nombre de la liga no puede estar vacío"
             return
         }
-        if (emailDeAdmin == null) {
-            errorMessage.value = "Error de sesión: No se detectó un usuario activo"
-            return
-        }
-
-        isLoading.value = true
-        errorMessage.value = null
 
         viewModelScope.launch {
+            isLoading.value = true
+            errorMessage.value = null
             try {
-                val nuevoLigaId = UUID.randomUUID().toString()
-                val nuevoMembresiaId = UUID.randomUUID().toString()
-                val codigoGenerado = generarCodigoUnico()
+                val nuevoIdLiga = UUID.randomUUID().toString()
+                val codigoInvitacion = nuevoIdLiga.take(6).uppercase()
 
                 val nuevaLiga = Liga(
-                    id = nuevoLigaId,
+                    id = nuevoIdLiga,
                     nombre = nombre,
-                    codigo = codigoGenerado,
-                    adminEmail = emailDeAdmin,
-                    maxJugadores = 20
+                    codigo = codigoInvitacion,
+                    adminEmail = emailAdmin
                 )
 
+                // 1. Insertar la nueva liga en Supabase
                 SupabaseClient.client.from("ligas").insert(nuevaLiga)
 
+                // 2. Crear la membresía con los 100 Millones iniciales
                 val membresiaAdmin = LigaUsuario(
-                    id = nuevoMembresiaId,
-                    ligaId = nuevoLigaId,
-                    emailUsuario = emailDeAdmin,
-                    puntos = 0,
-                    presupuesto = 1000000
+                    id = UUID.randomUUID().toString(),
+                    ligaId = nuevoIdLiga,
+                    emailUsuario = emailAdmin,
+                    presupuesto = 100000000L
                 )
-
                 SupabaseClient.client.from("liga_usuarios").insert(membresiaAdmin)
 
-                SessionManager.ligaActual = nuevaLiga
-                ligaActual.value = nuevaLiga
+                // 3. Entregar los 6 atletas de regalo para ESTA liga concreta
+                asignarAtletasAleatorios(nuevoIdLiga, emailAdmin)
 
-                onSuccess()
+                // 4. Actualizar la sesión activa con la liga que se acaba de fabricar
+                SessionManager.ligaActual = nuevaLiga
+                onExito()
+
             } catch (e: Exception) {
-                e.printStackTrace()
-                errorMessage.value = "No se pudo registrar la liga en la base de datos"
+                errorMessage.value = "Error al crear la liga: ${e.localizedMessage}"
             } finally {
                 isLoading.value = false
             }
         }
     }
 
-    fun unirseALiga(onSuccess: () -> Unit) {
+    fun unirseALigaPorCodigo(onExito: () -> Unit) {
+        val email = SessionManager.usuarioActual?.email ?: return
         val codigo = codigoLiga.value.trim().uppercase()
-        val userEmail = SessionManager.usuarioActual?.email
 
-        if (codigo.isEmpty()) {
-            errorMessage.value = "Introduce el código de la liga"
+        if (codigo.isBlank()) {
+            errorMessage.value = "Introduce un código válido"
             return
         }
-        if (userEmail == null) {
-            errorMessage.value = "Usuario no autenticado"
-            return
-        }
-
-        isLoading.value = true
-        errorMessage.value = null
 
         viewModelScope.launch {
+            isLoading.value = true
+            errorMessage.value = null
             try {
                 val ligaEncontrada = SupabaseClient.client.from("ligas")
-                    .select {
-                        filter { eq("codigo", codigo) }
-                    }.decodeSingleOrNull<Liga>()
+                    .select { filter { eq("codigo", codigo) } }
+                    .decodeSingleOrNull<Liga>()
 
-                if (ligaEncontrada == null) {
-                    errorMessage.value = "El código de liga introducido no existe"
-                    return@launch
+                if (ligaEncontrada != null) {
+                    val miembroExistente = SupabaseClient.client.from("liga_usuarios")
+                        .select {
+                            filter {
+                                eq("email_usuario", email)
+                                eq("liga_id", ligaEncontrada.id)
+                            }
+                        }.decodeSingleOrNull<LigaUsuario>()
+
+                    if (miembroExistente == null) {
+                        val nuevaMembresia = LigaUsuario(
+                            id = UUID.randomUUID().toString(),
+                            ligaId = ligaEncontrada.id,
+                            emailUsuario = email,
+                            presupuesto = 100000000L
+                        )
+                        SupabaseClient.client.from("liga_usuarios").insert(nuevaMembresia)
+
+                        // Entregar los 6 atletas aleatorios al nuevo miembro
+                        asignarAtletasAleatorios(ligaEncontrada.id, email)
+                    }
+
+                    // Establecer como liga activa actual de la sesión
+                    SessionManager.ligaActual = ligaEncontrada
+                    onExito()
+                } else {
+                    errorMessage.value = "El código de la liga no existe"
                 }
-
-                val miembroExistente = SupabaseClient.client.from("liga_usuarios")
-                    .select {
-                        filter {
-                            eq("liga_id", ligaEncontrada.id)
-                            eq("email_usuario", userEmail)
-                        }
-                    }.decodeSingleOrNull<LigaUsuario>()
-
-                if (miembroExistente != null) {
-                    errorMessage.value = "Ya formas parte de esta liga"
-                    return@launch
-                }
-
-                val nuevaMembresia = LigaUsuario(
-                    id = UUID.randomUUID().toString(),
-                    ligaId = ligaEncontrada.id,
-                    emailUsuario = userEmail,
-                    puntos = 0,
-                    presupuesto = 1000000
-                )
-                SupabaseClient.client.from("liga_usuarios").insert(nuevaMembresia)
-
-                SessionManager.ligaActual = ligaEncontrada
-                ligaActual.value = ligaEncontrada
-
-                onSuccess()
             } catch (e: Exception) {
-                e.printStackTrace()
-                errorMessage.value = "Error al unirse a la liga"
+                errorMessage.value = "Error al unirse: ${e.localizedMessage}"
             } finally {
                 isLoading.value = false
             }
+        }
+    }
+
+    private suspend fun asignarAtletasAleatorios(ligaId: String, email: String) {
+        try {
+            val todosLosAtletas = SupabaseClient.client.from("atletas")
+                .select().decodeList<Atleta>()
+
+            if (todosLosAtletas.isNotEmpty()) {
+                val seleccionados = todosLosAtletas.shuffled().take(6)
+
+                seleccionados.forEachIndexed { index, atleta ->
+                    val esTitular = index < 3 // 3 titulares y 3 suplentes
+
+                    val nuevaEntrada = PlantillaEntry(
+                        id = UUID.randomUUID().toString(),
+                        ligaId = ligaId,
+                        emailUsuario = email,
+                        atletaId = atleta.id,
+                        esTitular = esTitular
+                    )
+                    SupabaseClient.client.from("plantilla_usuario").insert(nuevaEntrada)
+                }
+            }
+        } catch (e: Exception) {
+            println("Error al repartir futbolistas: ${e.localizedMessage}")
         }
     }
 }

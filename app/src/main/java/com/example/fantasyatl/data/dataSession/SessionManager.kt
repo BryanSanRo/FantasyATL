@@ -1,4 +1,8 @@
-package com.example.fantasyatl.data
+package com.example.fantasyatl.data.dataSession
+
+import com.example.fantasyatl.data.Liga
+import com.example.fantasyatl.data.dataUsuario.Usuario
+
 
 object SessionManager {
     var usuarioActual: Usuario? = null

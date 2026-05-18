@@ -1,4 +1,4 @@
-package com.example.fantasyatl.data
+package com.example.fantasyatl.data.dataSession
 
 
 import com.example.fantasyatl.BuildConfig

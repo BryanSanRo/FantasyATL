@@ -103,9 +103,11 @@ fun LigaScreen(
                     Button(
                         onClick = {
                             if (mostrarCrear) {
+                                // 🟢 CORREGIDO: Llama al método unificado
                                 viewModel.crearLiga { onVolverAlDashboard() }
                             } else {
-                                viewModel.unirseALiga { onVolverAlDashboard() }
+                                // 🟢 CORREGIDO: Llama al método unificado por código
+                                viewModel.unirseALigaPorCodigo { onVolverAlDashboard() }
                             }
                         },
                         modifier = Modifier.fillMaxWidth().height(50.dp),
@@ -123,7 +125,10 @@ fun LigaScreen(
 
                     Spacer(modifier = Modifier.height(6.dp))
 
-                    TextButton(onClick = { mostrarCrear = !mostrarCrear }) {
+                    TextButton(onClick = {
+                        mostrarCrear = !mostrarCrear
+                        viewModel.errorMessage.value = null // Reseteamos errores al cambiar de pestaña
+                    }) {
                         Text(
                             text = if (mostrarCrear) "¿Ya tienes código? Únete aquí" else "¿No tienes liga? Crea una",
                             color = Color(0xFF1A237E)

@@ -11,7 +11,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -22,7 +21,10 @@ fun AlineacionScreen(
     paddingValues: PaddingValues,
     viewModel: PlantillaViewModel = viewModel()
 ) {
-    LaunchedEffect(Unit) { viewModel.cargarPlantilla() }
+    // Forzamos la carga inicial de los atletas al renderizar la pantalla
+    LaunchedEffect(Unit) {
+        viewModel.cargarPlantilla()
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -58,14 +60,19 @@ fun AlineacionScreen(
                 )
             }
         } else {
+            // Mapeamos directamente con la lista utilizando tu clase Atleta limpia
             items(viewModel.titulares.value) { entry ->
-                AtletaAlineacionCard(
-                    nombre = "${entry.atletas?.nombre} ${entry.atletas?.apellidos}",
-                    disciplina = entry.atletas?.disciplina ?: "",
-                    valoracion = entry.atletas?.valoracion ?: 0,
-                    esTitular = true,
-                    onCambiar = { viewModel.cambiarTitularidad(entry) }
-                )
+                // Usamos el operador elvis (?) por seguridad en caso de que tarde en llegar de Supabase
+                val atleta = entry.atleta
+                if (atleta != null) {
+                    AtletaAlineacionCard(
+                        nombre = "${atleta.nombre} ${atleta.apellidos}",
+                        disciplina = atleta.disciplina,
+                        valoracion = atleta.valoracion,
+                        esTitular = true,
+                        onCambiar = { viewModel.cambiarTitularidad(entry) }
+                    )
+                }
             }
         }
 
@@ -88,14 +95,18 @@ fun AlineacionScreen(
                 )
             }
         } else {
+            // Mapeamos los suplentes de igual forma con tu clase Atleta limpia
             items(viewModel.suplentes.value) { entry ->
-                AtletaAlineacionCard(
-                    nombre = "${entry.atletas?.nombre} ${entry.atletas?.apellidos}",
-                    disciplina = entry.atletas?.disciplina ?: "",
-                    valoracion = entry.atletas?.valoracion ?: 0,
-                    esTitular = false,
-                    onCambiar = { viewModel.cambiarTitularidad(entry) }
-                )
+                val atleta = entry.atleta
+                if (atleta != null) {
+                    AtletaAlineacionCard(
+                        nombre = "${atleta.nombre} ${atleta.apellidos}",
+                        disciplina = atleta.disciplina,
+                        valoracion = atleta.valoracion,
+                        esTitular = false,
+                        onCambiar = { viewModel.cambiarTitularidad(entry) }
+                    )
+                }
             }
         }
     }
@@ -123,7 +134,7 @@ fun AtletaAlineacionCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Círculo inicial
+            // Inicial redondeada
             Surface(
                 shape = RoundedCornerShape(50),
                 color = if (esTitular) Color(0xFF2E7D32) else Color(0xFFF9A825),
@@ -131,7 +142,7 @@ fun AtletaAlineacionCard(
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
-                        text = nombre.first().toString(),
+                        text = if (nombre.isNotEmpty()) nombre.first().toString() else "A",
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp

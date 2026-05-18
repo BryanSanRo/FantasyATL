@@ -3,11 +3,11 @@ package com.example.fantasyatl.ui.clasificaion
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.fantasyatl.data.ClasificacionEntry
-import com.example.fantasyatl.data.LigaUsuario
-import com.example.fantasyatl.data.SessionManager
-import com.example.fantasyatl.data.SupabaseClient
-import com.example.fantasyatl.data.Usuario
+import com.example.fantasyatl.data.dataClasificacion.ClasificacionEntry
+import com.example.fantasyatl.data.ligadata.LigaUsuario
+import com.example.fantasyatl.data.dataSession.SessionManager
+import com.example.fantasyatl.data.dataSession.SupabaseClient
+import com.example.fantasyatl.data.dataUsuario.Usuario
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.launch
 

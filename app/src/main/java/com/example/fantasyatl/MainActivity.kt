@@ -19,7 +19,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.fantasyatl.data.SessionManager
+import com.example.fantasyatl.data.dataSession.SessionManager
 import com.example.fantasyatl.ui.alineacion.AlineacionScreen
 import com.example.fantasyatl.ui.auth.LoginScreen
 import com.example.fantasyatl.ui.auth.RegisterScreen
@@ -29,7 +29,7 @@ import com.example.fantasyatl.ui.home.HomeDashboardScreen
 import com.example.fantasyatl.ui.home.HomeDashboardViewModel
 import com.example.fantasyatl.ui.home.MainAppLayout
 import com.example.fantasyatl.ui.liga.LigaScreen
-import com.example.fantasyatl.ui.liga.LigaViewModel
+import com.example.fantasyatl.ui.market.AtletaViewModel
 import com.example.fantasyatl.ui.market.MercadoScreen
 import com.example.fantasyatl.ui.perfil.PerfilScreen
 import com.example.fantasyatl.ui.plantilla.PlantillaScreen
@@ -77,7 +77,7 @@ class MainActivity : ComponentActivity() {
                             RecuperacionScreen(onVolver = { navController.popBackStack() })
                         }
 
-                        // --- 4. DASHBOARD CON EL FORMATO ORIGINAL CORREGIDO ---
+                        // --- 4. DASHBOARD ---
                         composable("dashboard") {
                             val dashboardViewModel: HomeDashboardViewModel = viewModel()
                             HomeDashboardScreen(
@@ -91,7 +91,6 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToPerfil = {
                                     navController.navigate("perfil")
                                 },
-
                                 onNavigateToCrearLiga = {
                                     navController.navigate("liga")
                                 },
@@ -104,9 +103,8 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        // --- 5. PANTALLA DE CREAR/UNIRSE A LIGA ---
+                        // --- 5. CREAR/UNIRSE A LIGA ---
                         composable("liga") {
-                            val ligaViewModel: LigaViewModel = viewModel()
                             LigaScreen(
                                 onVolverAlDashboard = {
                                     navController.navigate("dashboard") {
@@ -116,14 +114,22 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        // --- 6. HOME (Panel Multi-Pestaña)
+                        // --- 6. HOME (5 pestañas) ---
                         composable(
                             route = "home?section={section}",
-                            arguments = listOf(navArgument("section") { type = NavType.IntType; defaultValue = 0 })
+                            arguments = listOf(
+                                navArgument("section") {
+                                    type = NavType.IntType
+                                    defaultValue = 0
+                                }
+                            )
                         ) { backStackEntry ->
                             val sectionParam = backStackEntry.arguments?.getInt("section") ?: 0
                             var seccionActual by remember { mutableIntStateOf(sectionParam) }
+
+                            // ✅ ViewModels compartidos entre pestañas
                             val plantillaViewModel: PlantillaViewModel = viewModel()
+                            val atletaViewModel: AtletaViewModel = viewModel()
 
                             MainAppLayout(
                                 nombreUsuario = SessionManager.usuarioActual?.nombre ?: "Usuario",
@@ -141,7 +147,7 @@ class MainActivity : ComponentActivity() {
                                     when (seccionActual) {
                                         0 -> AlineacionScreen(PaddingValues(0.dp), plantillaViewModel)
                                         1 -> PlantillaScreen(PaddingValues(0.dp), plantillaViewModel)
-                                        2 -> MercadoScreen(PaddingValues(0.dp), plantillaViewModel)
+                                        2 -> MercadoScreen(PaddingValues(0.dp), plantillaViewModel, atletaViewModel)
                                         3 -> PuntosScreen(PaddingValues(0.dp))
                                         4 -> ClasificacionScreen()
                                     }

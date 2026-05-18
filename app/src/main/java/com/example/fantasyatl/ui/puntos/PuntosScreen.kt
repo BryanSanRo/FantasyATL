@@ -1,81 +1,75 @@
 package com.example.fantasyatl.ui.puntos
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.fantasyatl.data.SessionManager
-import com.example.fantasyatl.data.SupabaseClient
+import com.example.fantasyatl.data.dataSession.SessionManager
+import com.example.fantasyatl.data.dataSession.SupabaseClient
+
+// 🟢 IMPORTS CORREGIDOS SEGÚN TU ESTRUCTURA DE ARCHIVOS
+import com.example.fantasyatl.data.dataPlantilla.PlantillaEntry
+import com.example.fantasyatl.data.dataPuntos.PuntosJornadaEntry
+import com.example.fantasyatl.data.dataPuntos.UsuarioPuntos
+
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.launch
-import kotlinx.serialization.Serializable
-
-@Serializable
-data class PuntoJornada(
-    val id: String? = null,
-    val liga_id: String,
-    val atleta_id: String,
-    val jornada: Int,
-    val puntos: Int,
-    val descripcion: String? = null
-)
 
 class PuntosViewModel : ViewModel() {
     var puntosTotales = mutableStateOf(0)
-    var puntosDetalle = mutableStateOf<List<PuntoJornada>>(emptyList())
     var isLoading = mutableStateOf(false)
+    var error = mutableStateOf<String?>(null)
 
-    fun cargarPuntos() {
-        val email = SessionManager.usuarioActual?.email ?: return
-        val ligaId = SessionManager.ligaActual?.id ?: return
-
+    fun calcularPuntosUsuario(email: String, ligaId: String) {
         viewModelScope.launch {
             isLoading.value = true
+            error.value = null
             try {
-                // Obtener atletas titulares del usuario
-                val titulares = SupabaseClient.client.from("plantilla_usuario")
+                // Paso A: Buscamos qué atletas tiene comprados el usuario en esta liga concreta
+                val misAtletasEnPlantilla = SupabaseClient.client
+                    .from("plantilla_usuario")
                     .select {
                         filter {
                             eq("email_usuario", email)
                             eq("liga_id", ligaId)
-                            eq("es_titular", true)
                         }
-                    }.decodeList<com.example.fantasyatl.ui.plantilla.PlantillaEntry>()
+                    }.decodeList<PlantillaEntry>()
 
-                val atletaIds = titulares.map { it.atleta_id }
-
-                // Obtener puntos de esos atletas en esta liga
-                val puntos = mutableListOf<PuntoJornada>()
-                var total = 0
-
-                for (atletaId in atletaIds) {
-                    val puntosAtleta = SupabaseClient.client.from("puntos_jornada")
-                        .select {
-                            filter {
-                                eq("liga_id", ligaId)
-                                eq("atleta_id", atletaId)
-                            }
-                        }.decodeList<PuntoJornada>()
-                    puntos.addAll(puntosAtleta)
-                    total += puntosAtleta.sumOf { it.puntos }
+                if (misAtletasEnPlantilla.isEmpty()) {
+                    puntosTotales.value = 0
+                    return@launch
                 }
 
-                puntosDetalle.value = puntos.sortedByDescending { it.jornada }
-                puntosTotales.value = total
+                // Guardamos solo los ID de los futbolistas/atletas del usuario
+                val listaIdsAtletas = misAtletasEnPlantilla.map { it.atletaId ?: "" }
+
+                // Paso B: Traemos todas las puntuaciones registradas en la liga actual
+                val todosLosPuntosLiga = SupabaseClient.client
+                    .from("puntos_jornada")
+                    .select {
+                        filter {
+                            eq("liga_id", ligaId)
+                        }
+                    }.decodeList<PuntosJornadaEntry>() // 🟢 Usando tu clase exacta
+
+                // Paso C: Filtramos en memoria sumando los puntos de los atletas que sí posee el usuario
+                val sumaPuntos = todosLosPuntosLiga
+                    .filter { listaIdsAtletas.contains(it.atletaId) }
+                    .sumOf { it.puntos }
+
+                puntosTotales.value = sumaPuntos
 
             } catch (e: Exception) {
-                // Error silencioso
+                error.value = "Error al calcular puntos: ${e.localizedMessage}"
             } finally {
                 isLoading.value = false
             }
@@ -86,95 +80,79 @@ class PuntosViewModel : ViewModel() {
 @Composable
 fun PuntosScreen(
     paddingValues: PaddingValues,
-    viewModel: PuntosViewModel = viewModel()
+    puntosViewModel: PuntosViewModel = viewModel()
 ) {
-    LaunchedEffect(Unit) { viewModel.cargarPuntos() }
+    val emailUsuario = SessionManager.usuarioActual?.email ?: ""
+    val idLiga = SessionManager.ligaActual?.id ?: ""
 
-    LazyColumn(
+    LaunchedEffect(emailUsuario, idLiga) {
+        if (emailUsuario.isNotEmpty() && idLiga.isNotEmpty()) {
+            puntosViewModel.calcularPuntosUsuario(emailUsuario, idLiga)
+        } else {
+            puntosViewModel.error.value = "Selecciona una liga para ver tus puntuaciones acumuladas."
+        }
+    }
+
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(paddingValues)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(paddingValues),
+        contentAlignment = Alignment.Center
     ) {
-        item {
-            Text("Mis Puntos", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-        }
-
-        // Total de puntos
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF1A237E))
-            ) {
+        when {
+            puntosViewModel.isLoading.value -> {
+                CircularProgressIndicator()
+            }
+            puntosViewModel.error.value != null -> {
+                Text(
+                    text = puntosViewModel.error.value ?: "Error",
+                    color = Color.Red,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+            else -> {
                 Column(
-                    modifier = Modifier.padding(24.dp).fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier.padding(24.dp)
                 ) {
-                    Text("Puntos totales", color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp)
                     Text(
-                        "${viewModel.puntosTotales.value}",
-                        color = Color.White,
-                        fontSize = 48.sp,
-                        fontWeight = FontWeight.ExtraBold
+                        text = "Mis Puntos Totales",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1A237E)
                     )
-                    Text(
-                        "Solo cuentan los titulares",
-                        color = Color.White.copy(alpha = 0.5f),
-                        fontSize = 12.sp
-                    )
-                }
-            }
-        }
+                    Spacer(modifier = Modifier.height(24.dp))
 
-        if (viewModel.isLoading.value) {
-            item { CircularProgressIndicator() }
-        } else if (viewModel.puntosDetalle.value.isEmpty()) {
-            item {
-                Text(
-                    "Aún no hay puntos registrados para tus atletas titulares.",
-                    color = Color.Gray,
-                    fontSize = 13.sp
-                )
-            }
-        } else {
-            item {
-                Text(
-                    "Detalle por jornada",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
-                )
-            }
-            items(viewModel.puntosDetalle.value) { punto ->
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                "Jornada ${punto.jornada}",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp
-                            )
-                            punto.descripcion?.let {
-                                Text(it, fontSize = 12.sp, color = Color.Gray)
-                            }
-                        }
-                        Text(
-                            "+${punto.puntos} pts",
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 18.sp,
-                            color = Color(0xFF2E7D32)
+                    Card(
+                        modifier = Modifier.size(160.dp),
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(80.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
                         )
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            Text(
+                                text = "${puntosViewModel.puntosTotales.value}",
+                                fontSize = 54.sp,
+                                fontWeight = FontWeight.Black,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
                     }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Suma de los puntos de jornada obtenidos por tus atletas en esta liga",
+                        fontSize = 14.sp,
+                        color = Color.Gray,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
                 }
             }
         }

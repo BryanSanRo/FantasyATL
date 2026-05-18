@@ -1,4 +1,4 @@
-package com.example.fantasyatl.data
+package com.example.fantasyatl.data.dataClasificacion
 
 import kotlinx.serialization.Serializable
 

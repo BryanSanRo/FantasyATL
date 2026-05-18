@@ -1,5 +1,4 @@
-package com.example.fantasyatl.data
-
+package com.example.fantasyatl.data.dataAtleta
 
 import kotlinx.serialization.Serializable
 

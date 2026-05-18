@@ -16,7 +16,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.fantasyatl.data.SessionManager
+import com.example.fantasyatl.data.dataSession.SessionManager
 import com.example.fantasyatl.ui.auth.RecuperacionViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
