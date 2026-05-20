@@ -179,8 +179,6 @@ fun PuntosScreen(
         colors = listOf(Color(0xFF0F1B3E), Color(0xFF080F26))
     )
 
-    // Eliminamos el Scaffold interno de esta pantalla porque el contenedor padre
-    // ya dibuja la barra de navegación inferior (sección 0, 1, 2, 3)
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -304,10 +302,10 @@ fun PuntosScreen(
 @Composable
 fun FilaPodioPremium(jugador: ItemClasificacion) {
     val colorFondoRow = when (jugador.posicion) {
-        1 -> Color(0xFFFFD54F) // Oro brillante
-        2 -> Color(0xFFCFD8DC) // Plata
-        3 -> Color(0xFFFFCC80) // Bronce
-        else -> Color(0xFF18254B) // Resto de usuarios azul oscuro
+        1 -> Color(0xFFFFD54F)
+        2 -> Color(0xFFCFD8DC)
+        3 -> Color(0xFFFFCC80)
+        else -> Color(0xFF18254B)
     }
 
     val colorTextoPrincipal = if (jugador.posicion in 1..3) Color(0xFF0F1B3E) else Color.White
