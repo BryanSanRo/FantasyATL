@@ -3,10 +3,11 @@ package com.example.fantasyatl.ui.auth
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.fantasyatl.ui.email.EmailService
-import com.example.fantasyatl.data.dataSession.SessionManager
-import com.example.fantasyatl.data.dataSession.SupabaseClient
-import com.example.fantasyatl.data.dataUsuario.Usuario
+import com.example.fantasyatl.data.EmailDB.EmailService
+import com.example.fantasyatl.data.SessionDB.SessionManager
+import com.example.fantasyatl.data.SessionDB.SupabaseClient
+import com.example.fantasyatl.data.UsuarioDB.Usuario
+
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -131,12 +132,14 @@ class RecuperacionViewModel : ViewModel() {
 
                     withContext(Dispatchers.Main) {
                         if (enviado) {
-                            emailVerificadoRespaldado = emailLimpio // Respaldamos el correo procesado
+                            emailVerificadoRespaldado =
+                                emailLimpio // Respaldamos el correo procesado
                             emailEnviado.value = true
                             intentosFallidos.value = 0
                             paso.value = 2
                         } else {
-                            errorGeneral.value = "Error al enviar el email. Verifica tus credenciales de Resend."
+                            errorGeneral.value =
+                                "Error al enviar el email. Verifica tus credenciales de Resend."
                         }
                     }
                 }
@@ -188,7 +191,8 @@ class RecuperacionViewModel : ViewModel() {
                             else
                                 "Sin intentos. Solicita un nuevo código"
                         } else {
-                            emailVerificadoRespaldado = correoABuscar // Aseguramos el correo para el paso 3
+                            emailVerificadoRespaldado =
+                                correoABuscar // Aseguramos el correo para el paso 3
                             intentosFallidos.value = 0
                             tokenError.value = null
                             paso.value = 3 // Avanza al cambio de contraseña sin problemas
@@ -286,8 +290,14 @@ class RecuperacionViewModel : ViewModel() {
                 withContext(Dispatchers.IO) {
                     SupabaseClient.client.from("usuarios").update({
                         if (nuevoNombre.value.isNotBlank()) set("nombre", nuevoNombre.value.trim())
-                        if (nuevoApellidos.value.isNotBlank()) set("apellidos", nuevoApellidos.value.trim())
-                        if (nuevoEmail.value.isNotBlank() && nuevoEmail.value != usuario.email) set("email", nuevoEmail.value.trim())
+                        if (nuevoApellidos.value.isNotBlank()) set(
+                            "apellidos",
+                            nuevoApellidos.value.trim()
+                        )
+                        if (nuevoEmail.value.isNotBlank() && nuevoEmail.value != usuario.email) set(
+                            "email",
+                            nuevoEmail.value.trim()
+                        )
                     }) { filter { eq("email", usuario.email) } }
 
                     SessionManager.usuarioActual = usuario.copy(

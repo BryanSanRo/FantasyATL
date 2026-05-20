@@ -3,10 +3,11 @@ package com.example.fantasyatl.ui.home
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.fantasyatl.data.Liga
-import com.example.fantasyatl.data.ligadata.LigaUsuario
-import com.example.fantasyatl.data.dataSession.SessionManager
-import com.example.fantasyatl.data.dataSession.SupabaseClient
+import com.example.fantasyatl.data.LigaDB.Liga
+import com.example.fantasyatl.data.LigaDB.LigaUsuario
+import com.example.fantasyatl.data.SessionDB.SessionManager
+import com.example.fantasyatl.data.SessionDB.SupabaseClient
+
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.launch
 
@@ -14,43 +15,67 @@ class HomeDashboardViewModel : ViewModel() {
 
     var isLoading = mutableStateOf(false)
     var avisoError = mutableStateOf<String?>(null)
+    var ligaNombre = mutableStateOf("Sin Liga")
+    var posicionUsuario = mutableStateOf("-")
+    var puntosUsuario = mutableStateOf(0)
+    var misLigasDisponibles = mutableStateOf<List<Liga>>(emptyList())
 
-    fun verificarYEntrarALigas(onSuccess: () -> Unit) {
-        val email = SessionManager.usuarioActual?.email
-        if (email == null) {
-            avisoError.value = "Error: Sesión de usuario no detectada"
-            return
-        }
-
-        isLoading.value = true
-        avisoError.value = null
-
+    fun cargarDatosDashboardSilencioso() {
+        val email = SessionManager.usuarioActual?.email ?: return
         viewModelScope.launch {
             try {
-                val misLigas = SupabaseClient.client.from("liga_usuarios")
-                    .select {
-                        filter { eq("email_usuario", email) }
-                    }.decodeList<LigaUsuario>()
+                val membresias = SupabaseClient.client
+                    .from("liga_usuarios")
+                    .select { filter { eq("email_usuario", email) } }
+                    .decodeList<LigaUsuario>()
 
-                if (misLigas.isEmpty()) {
-                    avisoError.value = "No tienes ninguna liga asociada. ¡Crea una o únete primero!"
-                } else {
-                    val primeraLiga = SupabaseClient.client.from("ligas")
-                        .select {
-                            filter { eq("id", misLigas.first().ligaId) }
-                        }.decodeSingleOrNull<Liga>()
+                val ids = membresias.map { it.ligaId }
+                if (ids.isEmpty()) return@launch
 
-                    if (primeraLiga != null) {
-                        SessionManager.ligaActual = primeraLiga
-                    }
-                    onSuccess()
+                val ligasCompletas = SupabaseClient.client
+                    .from("ligas")
+                    .select { filter { isIn("id", ids) } }
+                    .decodeList<Liga>()
+
+                misLigasDisponibles.value = ligasCompletas
+
+                val ligaActual = SessionManager.ligaActual ?: ligasCompletas.firstOrNull()
+                if (ligaActual != null) {
+                    SessionManager.ligaActual = ligaActual
+                    ligaNombre.value = ligaActual.nombre
+                    calcularClasificacion(ligaActual.id, email)
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                avisoError.value = "Error al conectar con la base de datos: ${e.localizedMessage}"
-            } finally {
-                isLoading.value = false
             }
         }
+    }
+
+    fun cambiarDeLigaActiva(nuevaLiga: Liga, onCambioCompleto: () -> Unit = {}) {
+        val email = SessionManager.usuarioActual?.email ?: return
+        SessionManager.ligaActual = nuevaLiga
+        ligaNombre.value = nuevaLiga.nombre
+        viewModelScope.launch {
+            try {
+                calcularClasificacion(nuevaLiga.id, email)
+                onCambioCompleto()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    private suspend fun calcularClasificacion(ligaId: String, email: String) {
+        val miembros = SupabaseClient.client
+            .from("liga_usuarios")
+            .select { filter { eq("liga_id", ligaId) } }
+            .decodeList<LigaUsuario>()
+            .sortedByDescending { it.puntos }
+
+        val indice = miembros.indexOfFirst { it.emailUsuario == email }
+        val misDatos = miembros.find { it.emailUsuario == email }
+
+        posicionUsuario.value = if (indice != -1) "#${indice + 1}" else "-"
+        puntosUsuario.value = misDatos?.puntos ?: 0
     }
 }

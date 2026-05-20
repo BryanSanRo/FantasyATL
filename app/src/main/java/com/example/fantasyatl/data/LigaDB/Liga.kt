@@ -1,4 +1,4 @@
-package com.example.fantasyatl.data
+package com.example.fantasyatl.data.LigaDB
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

@@ -1,10 +1,9 @@
-package com.example.fantasyatl.data.dataPlantilla
+package com.example.fantasyatl.data.PlantillaDB
 
-import com.example.fantasyatl.data.dataAtleta.Atleta
+import com.example.fantasyatl.data.AtletaDB.Atleta
 import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
 
-@Serializable
+
 data class PlantillaConAtleta(
     val id: String? = null,
 

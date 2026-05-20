@@ -1,314 +1,195 @@
 package com.example.fantasyatl.ui.market
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.fantasyatl.data.dataAtleta.Atleta
-import com.example.fantasyatl.data.dataSession.SupabaseClient
+import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.fantasyatl.ui.plantilla.PlantillaViewModel
+import com.example.fantasyatl.data.AtletaDB.Atleta
+import com.example.fantasyatl.data.PujaDB.PujaDB
+import com.example.fantasyatl.data.SessionDB.SupabaseClient
 import io.github.jan.supabase.postgrest.from
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.util.Calendar
+import java.util.TimeZone
 
 class AtletaViewModel : ViewModel() {
+
+    private var atletasDelDia: List<Atleta> = emptyList()
+
+    // Estados reactivos que Compose observará para redibujar la pantalla
     var atletasMercado = mutableStateOf<List<Atleta>>(emptyList())
+    var misPujasActivas = mutableStateOf<List<Atleta>>(emptyList())
+    var dineroRetenidoEnPujas = mutableStateOf(0)
+
     var isLoading = mutableStateOf(false)
     var error = mutableStateOf<String?>(null)
+    var mensajeResolucion = mutableStateOf<String?>(null)
 
-    fun cargarMercado() {
+    private val _tiempoRestante = mutableStateOf("24:00:00")
+    val tiempoRestante: State<String> = _tiempoRestante
+
+    init {
+        iniciarTemporizadorMercado()
+    }
+
+    fun cargarMercado(idsYaFichados: Set<String>, emailUsuario: String) {
+        if (emailUsuario.isBlank()) return
+
         viewModelScope.launch {
             isLoading.value = true
             error.value = null
             try {
-                val todos = SupabaseClient.client
-                    .from("atletas")
-                    .select()
-                    .decodeList<Atleta>()
+                // 1. Descarga defensiva de atletas si la lista en memoria está vacía
+                if (atletasDelDia.isEmpty()) {
+                    val todos = SupabaseClient.client.from("atletas")
+                        .select().decodeList<Atleta>()
 
-                atletasMercado.value = todos.shuffled().take(8)
+                    atletasDelDia = todos.filter {
+                        it.id != null && it.id !in idsYaFichados
+                    }.shuffled().take(8)
+                }
+
+                // 2. Traer SIEMPRE la lista fresca de pujas de la base de datos
+                val todasLasPujas = SupabaseClient.client.from("pujas")
+                    .select().decodeList<PujaDB>()
+
+                var totalRetenido = 0
+                val correoFiltrado = emailUsuario.trim().lowercase()
+
+                // 3. Vincular los datos cruzando las tablas atleta <-> pujas
+                val listaMapeada = atletasDelDia.map { atleta ->
+                    val pujasDeEsteAtleta = todasLasPujas.filter { it.atleta_id == atleta.id }
+
+                    // Buscamos si el usuario actual tiene una puja en este atleta específico
+                    val pujaDelUsuario = pujasDeEsteAtleta.find {
+                        it.email_usuario.trim().lowercase() == correoFiltrado
+                    }
+
+                    if (pujaDelUsuario != null) {
+                        totalRetenido += pujaDelUsuario.cantidad
+                    }
+
+                    atleta.copy(
+                        contadorPujas = pujasDeEsteAtleta.size,
+                        miPujaActual = pujaDelUsuario?.cantidad
+                    )
+                }
+
+                // 4. Notificar a Compose modificando los estados atómicos
+                atletasMercado.value = listaMapeada
+
+                // IMPORTANTE: Aquí filtramos explícitamente para llenar la pestaña "Operaciones"
+                val filtradas = listaMapeada.filter { it.miPujaActual != null && it.miPujaActual!! > 0 }
+                misPujasActivas.value = filtradas
+
+                // Actualizamos el dinero retenido para restar del presupuesto de abajo
+                dineroRetenidoEnPujas.value = totalRetenido
+
             } catch (e: Exception) {
-                error.value = "Error al cargar el mercado"
+                error.value = "Error al sincronizar datos: ${e.localizedMessage}"
             } finally {
                 isLoading.value = false
             }
         }
     }
-}
 
-@Composable
-fun MercadoScreen(
-    paddingValues: PaddingValues,
-    plantillaViewModel: PlantillaViewModel,
-    atletaViewModel: AtletaViewModel = viewModel()
-) {
-    var tabSeleccionada by remember { mutableIntStateOf(0) }
-    val titulosTabs = listOf("En Venta", "Operaciones")
-    var mensajeAccion by remember { mutableStateOf<String?>(null) }
-
-    LaunchedEffect(Unit) {
-        atletaViewModel.cargarMercado()
-        plantillaViewModel.cargarPlantilla()
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(paddingValues)
+    fun enviarOModificarPuja(
+        atletaId: String,
+        emailUsuario: String,
+        oferta: Int,
+        idsYaFichados: Set<String>,
+        onExito: (String) -> Unit,
+        onError: (String) -> Unit
     ) {
-        TabRow(selectedTabIndex = tabSeleccionada) {
-            titulosTabs.forEachIndexed { index, titulo ->
-                Tab(
-                    selected = tabSeleccionada == index,
-                    onClick = { tabSeleccionada = index },
-                    text = { Text(titulo) }
-                )
-            }
-        }
+        if (atletaId.isBlank() || emailUsuario.isBlank()) return
 
-        // Mensaje acción (fichar/error)
-        mensajeAccion?.let { msg ->
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = if (msg.trim().startsWith("✅") || msg.contains("correctamente"))
-                        Color(0xFFE8F5E9) else Color(0xFFFFEBEE)
-                ),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text(
-                    text = msg,
-                    modifier = Modifier.padding(12.dp),
-                    color = if (msg.trim().startsWith("✅") || msg.contains("correctamente")) Color(0xFF2E7D32) else Color.Red,
-                    fontSize = 13.sp
-                )
-            }
-        }
-
-        when (tabSeleccionada) {
-
-            // --- PESTAÑA 1: Atletas en venta ---
-            0 -> {
-                when {
-                    atletaViewModel.isLoading.value -> {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) { CircularProgressIndicator() }
-                    }
-                    atletaViewModel.error.value != null -> {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                atletaViewModel.error.value ?: "",
-                                color = Color.Red
-                            )
+        viewModelScope.launch {
+            try {
+                // Verificar si ya existe un registro de puja para este atleta y usuario
+                val pujaExistente = SupabaseClient.client.from("pujas")
+                    .select {
+                        filter {
+                            eq("atleta_id", atletaId)
+                            eq("email_usuario", emailUsuario.trim())
                         }
-                    }
-                    else -> {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            items(atletaViewModel.atletasMercado.value) { atleta ->
-                                AtletaMercadoCard(
-                                    atleta = atleta,
-                                    presupuesto = plantillaViewModel.presupuesto.value,
-                                    onFichar = {
-                                        plantillaViewModel.ficharAtleta(
-                                            atleta = atleta,
-                                            onExito = {
-                                                mensajeAccion = " ${atleta.nombre} fichado correctamente"
-                                                atletaViewModel.cargarMercado()
-                                            },
-                                            onError = { msg ->
-                                                mensajeAccion = " $msg"
-                                            }
-                                        )
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
-            }
+                    }.decodeSingleOrNull<PujaDB>()
 
-            // --- PESTAÑA 2: Operaciones ---
-            1 -> {
-                val titulares = plantillaViewModel.titulares.value
-                val suplentes = plantillaViewModel.suplentes.value
-                val todos = titulares + suplentes
+                if (pujaExistente != null) {
+                    // Si existe, actualizamos el valor de la puja existente
+                    SupabaseClient.client.from("pujas").update(
+                        { set("cantidad", oferta) }
+                    ) { filter { eq("id", pujaExistente.id ?: "") } }
 
-                if (todos.isEmpty()) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            "No tienes atletas en tu plantilla.\nFicha atletas en la pestaña 'En Venta'.",
-                            color = Color.Gray,
-                            textAlign = TextAlign.Center
-                        )
-                    }
+                    mensajeResolucion.value = "Puja modificada con éxito"
+                    onExito("Puja modificada con éxito")
                 } else {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        // Columna de Titulares
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                "Titulares",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            titulares.forEach { entry ->
-                                // Extraemos el atleta de forma segura en singular (.atleta)
-                                val atleta = entry.atleta
-                                if (atleta != null) {
-                                    Card(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(bottom = 6.dp),
-                                        colors = CardDefaults.cardColors(
-                                            containerColor = Color(0xFFE8F5E9)
-                                        )
-                                    ) {
-                                        Text(
-                                            "${atleta.nombre} ${atleta.apellidos}",
-                                            modifier = Modifier.padding(8.dp),
-                                            fontSize = 13.sp,
-                                            fontWeight = FontWeight.SemiBold
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        VerticalDivider(color = Color.LightGray)
-
-                        // Columna de Suplentes
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                "Suplentes",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            suplentes.forEach { entry ->
-                                // Extraemos el atleta de forma segura en singular (.atleta)
-                                val atleta = entry.atleta
-                                if (atleta != null) {
-                                    Card(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(bottom = 6.dp),
-                                        colors = CardDefaults.cardColors(
-                                            containerColor = Color(0xFFFFFDE7)
-                                        )
-                                    ) {
-                                        Text(
-                                            "${atleta.nombre} ${atleta.apellidos}",
-                                            modifier = Modifier.padding(8.dp),
-                                            fontSize = 13.sp
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    // Si no existe, creamos una nueva fila en Supabase
+                    SupabaseClient.client.from("pujas").insert(
+                        PujaDB(
+                            atleta_id = atletaId,
+                            email_usuario = emailUsuario.trim(),
+                            cantidad = oferta
+                        )
+                    )
+                    mensajeResolucion.value = "Puja secreta registrada"
+                    onExito("Puja secreta registrada")
                 }
+
+                // Forzar de inmediato la recarga local de los datos para actualizar la UI
+                cargarMercado(idsYaFichados, emailUsuario)
+
+            } catch (e: Exception) {
+                onError(e.localizedMessage ?: "Error en la operación")
             }
         }
     }
-}
 
-@Composable
-fun AtletaMercadoCard(
-    atleta: Atleta,
-    presupuesto: Long,
-    onFichar: () -> Unit
-) {
-    val puedeFichar = atleta.precio.toLong() <= presupuesto
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(3.dp)
+    fun eliminarPuja(
+        atletaId: String,
+        emailUsuario: String,
+        idsYaFichados: Set<String>,
+        onExito: () -> Unit,
+        onError: (String) -> Unit
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            // Círculo con inicial
-            Surface(
-                shape = RoundedCornerShape(50),
-                color = Color(0xFF1A237E),
-                modifier = Modifier.size(48.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = if (atleta.nombre.isNotEmpty()) atleta.nombre.first().toString() else "A",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp
-                    )
+        viewModelScope.launch {
+            try {
+                SupabaseClient.client.from("pujas").delete {
+                    filter {
+                        eq("atleta_id", atletaId)
+                        eq("email_usuario", emailUsuario.trim())
+                    }
                 }
+                cargarMercado(idsYaFichados, emailUsuario)
+                onExito()
+            } catch (e: Exception) {
+                onError(e.localizedMessage ?: "Error al retirar puja")
             }
+        }
+    }
 
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    "${atleta.nombre} ${atleta.apellidos}",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
-                )
-                Text(atleta.disciplina, fontSize = 12.sp, color = Color.Gray)
-                Text(
-                    "⭐ ${atleta.valoracion}  |  ${"%,d".format(atleta.precio)} €",
-                    fontSize = 12.sp,
-                    color = Color(0xFF1A237E),
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-
-            Button(
-                onClick = onFichar,
-                enabled = puedeFichar,
-                shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (puedeFichar) Color(0xFF2E7D32) else Color.Gray
-                ),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-            ) {
-                Text(
-                    if (puedeFichar) "Fichar" else "Sin €",
-                    fontSize = 12.sp,
-                    color = Color.White
-                )
+    private fun iniciarTemporizadorMercado() {
+        viewModelScope.launch {
+            while (true) {
+                val ahora = System.currentTimeMillis()
+                val calendarMedianoche = Calendar.getInstance(TimeZone.getDefault()).apply {
+                    add(Calendar.DAY_OF_YEAR, 1)
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+                val diferenciaMilis = calendarMedianoche.timeInMillis - ahora
+                if (diferenciaMilis <= 0) {
+                    _tiempoRestante.value = "00:00:00"
+                } else {
+                    val totalSegundos = diferenciaMilis / 1000
+                    val horas = totalSegundos / 3600
+                    val minutos = (totalSegundos % 3600) / 60
+                    val segundos = totalSegundos % 60
+                    _tiempoRestante.value = String.format("%02d:%02d:%02d", horas, minutos, segundos)
+                }
+                delay(1000)
             }
         }
     }

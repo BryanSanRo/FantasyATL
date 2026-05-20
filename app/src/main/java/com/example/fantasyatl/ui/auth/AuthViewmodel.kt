@@ -3,9 +3,10 @@ package com.example.fantasyatl.ui.auth
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.fantasyatl.data.dataSession.SessionManager
-import com.example.fantasyatl.data.dataSession.SupabaseClient
-import com.example.fantasyatl.data.dataUsuario.Usuario
+import com.example.fantasyatl.data.SessionDB.SessionManager
+import com.example.fantasyatl.data.SessionDB.SupabaseClient
+import com.example.fantasyatl.data.UsuarioDB.Usuario
+
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.launch
 import org.mindrot.jbcrypt.BCrypt
@@ -41,6 +42,10 @@ class AuthViewModel : ViewModel() {
         if (username.value.isBlank()) {
             usernameError.value = "El email es obligatorio"
             isValid = false
+        } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(username.value.trim()).matches()) {
+            // 🟢 CORREGIDO: validar formato del email antes de hacer la query
+            usernameError.value = "Email no válido"
+            isValid = false
         } else {
             usernameError.value = null
         }
@@ -58,9 +63,26 @@ class AuthViewModel : ViewModel() {
 
     fun validateRegister(): Boolean {
         var isValid = true
-        if (nombre.value.isBlank()) { nombreError.value = "Obligatorio"; isValid = false } else nombreError.value = null
-        if (apellidos.value.isBlank()) { apellidosError.value = "Obligatorio"; isValid = false } else apellidosError.value = null
-        if (fechaNacimiento.value.isBlank()) { fechaError.value = "Introduce fecha"; isValid = false } else fechaError.value = null
+        if (nombre.value.isBlank()) {
+            nombreError.value = "Obligatorio"; isValid = false
+        } else nombreError.value = null
+        if (apellidos.value.isBlank()) {
+            apellidosError.value = "Obligatorio"; isValid = false
+        } else apellidosError.value = null
+        if (fechaNacimiento.value.isBlank()) {
+            fechaError.value = "Introduce fecha"; isValid = false
+        } else fechaError.value = null
+
+        // 🟢 CORREGIDO: validar formato del email en el registro (antes no se validaba nada)
+        if (email.value.isBlank()) {
+            usernameError.value = "El email es obligatorio"
+            isValid = false
+        } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email.value.trim()).matches()) {
+            usernameError.value = "Email no válido"
+            isValid = false
+        } else {
+            usernameError.value = null
+        }
 
         val passwordPattern = "^(?=.*[0-9])(?=.*[@#\$%^&+=!/¿?]).{8,}$".toRegex()
         if (!password.value.matches(passwordPattern)) {
@@ -114,8 +136,10 @@ class AuthViewModel : ViewModel() {
                 when {
                     usuarioEncontrado == null ->
                         usernameError.value = "El usuario no existe"
+
                     !BCrypt.checkpw(password.value, usuarioEncontrado.contrasena) ->
                         passwordError.value = "Contraseña incorrecta"
+
                     else -> {
                         SessionManager.usuarioActual = usuarioEncontrado
                         loginExitoso.value = true
@@ -132,15 +156,18 @@ class AuthViewModel : ViewModel() {
     private fun traducirError(e: Exception): String {
         val mensaje = e.message ?: return "Error desconocido"
         return when {
-            mensaje.contains("row-level security")      -> "No tienes permiso para realizar esta acción"
+            mensaje.contains("row-level security") -> "No tienes permiso para realizar esta acción"
             mensaje.contains("unique") ||
-                    mensaje.contains("duplicate")               -> "Este email ya está registrado"
+                    mensaje.contains("duplicate") -> "Este email ya está registrado"
+
             mensaje.contains("Unable to resolve host") ||
-                    mensaje.contains("network")                 -> "Sin conexión a internet"
-            mensaje.contains("timeout")                 -> "Conexión lenta, inténtalo de nuevo"
+                    mensaje.contains("network") -> "Sin conexión a internet"
+
+            mensaje.contains("timeout") -> "Conexión lenta, inténtalo de nuevo"
             mensaje.contains("unauthorized") ||
-                    mensaje.contains("401")                     -> "Sesión expirada, vuelve a iniciar sesión"
-            else                                        -> "Error al conectar con el servidor"
+                    mensaje.contains("401") -> "Sesión expirada, vuelve a iniciar sesión"
+
+            else -> "Error al conectar con el servidor"
         }
     }
 }

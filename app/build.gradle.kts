@@ -85,6 +85,7 @@ dependencies {
 
     // --- Seguridad ---
     implementation("org.mindrot:jbcrypt:0.4")
+    implementation(libs.play.services.cast.framework)
 
     // --- Tests ---
     testImplementation(libs.junit)

@@ -1,4 +1,4 @@
-package com.example.fantasyatl.data.dataPlantilla
+package com.example.fantasyatl.data.PlantillaDB
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

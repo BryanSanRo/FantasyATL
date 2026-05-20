@@ -1,7 +1,8 @@
-package com.example.fantasyatl.data.dataSession
+package com.example.fantasyatl.data.SessionDB
 
-import com.example.fantasyatl.data.Liga
-import com.example.fantasyatl.data.dataUsuario.Usuario
+
+import com.example.fantasyatl.data.LigaDB.Liga
+import com.example.fantasyatl.data.UsuarioDB.Usuario
 
 
 object SessionManager {

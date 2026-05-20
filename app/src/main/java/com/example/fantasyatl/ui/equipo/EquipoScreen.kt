@@ -36,7 +36,9 @@ fun EquipoScreen(paddingValues: PaddingValues) {
             }
         }
 
-        Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        Box(modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)) {
             when (tabSeleccionada) {
                 0 -> Text("Alineación elegida para competir hoy (Ej: 4 atletas)")
                 1 -> Text("Lista de TODOS los atletas que tienes comprados")

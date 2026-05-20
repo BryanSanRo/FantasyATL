@@ -1,4 +1,4 @@
-package com.example.fantasyatl.data.dataUsuario
+package com.example.fantasyatl.data.UsuarioDB
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

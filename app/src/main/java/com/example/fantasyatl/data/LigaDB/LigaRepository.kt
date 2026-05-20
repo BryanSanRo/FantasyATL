@@ -1,7 +1,6 @@
-package com.example.fantasyatl.data.ligadata
+package com.example.fantasyatl.data.LigaDB
 
-import com.example.fantasyatl.data.Liga
-import com.example.fantasyatl.data.dataSession.SupabaseClient
+import com.example.fantasyatl.data.SessionDB.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -25,7 +24,6 @@ object LigaRepository {
 
                 supabase.from("ligas").insert(nuevaLiga)
 
-                // ✅ Usamos nuevaLiga.id — antes usaba una variable separada con UUID distinto
                 val membresiaAdmin = LigaUsuario(
                     id = UUID.randomUUID().toString(),
                     ligaId = nuevaLiga.id,
@@ -63,7 +61,6 @@ object LigaRepository {
                         }
                     }.decodeSingleOrNull<LigaUsuario>()
 
-                // Si ya pertenecía, no insertamos de nuevo
                 if (miembroExistente != null)
                     return@withContext Result.success(ligaEncontrada)
 

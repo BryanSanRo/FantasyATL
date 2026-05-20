@@ -1,4 +1,4 @@
-package com.example.fantasyatl.data.ligadata
+package com.example.fantasyatl.data.LigaDB
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -9,5 +9,5 @@ data class LigaUsuario(
     @SerialName("liga_id") val ligaId: String,
     @SerialName("email_usuario") val emailUsuario: String,
     @SerialName("puntos") val puntos: Int = 0,
-    @SerialName("presupuesto") val presupuesto: Long = 1000000
+    @SerialName("presupuesto") val presupuesto: Long = 100000000
 )

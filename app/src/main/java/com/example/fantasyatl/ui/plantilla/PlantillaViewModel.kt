@@ -3,12 +3,13 @@ package com.example.fantasyatl.ui.plantilla
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.fantasyatl.data.dataSession.SessionManager
-import com.example.fantasyatl.data.dataSession.SupabaseClient
-import com.example.fantasyatl.data.dataPlantilla.PlantillaEntry
-import com.example.fantasyatl.data.dataPlantilla.PlantillaConAtleta
-import com.example.fantasyatl.data.dataAtleta.Atleta
-import com.example.fantasyatl.data.ligadata.LigaUsuario
+import com.example.fantasyatl.data.AtletaDB.Atleta
+import com.example.fantasyatl.data.LigaDB.LigaUsuario
+import com.example.fantasyatl.data.PlantillaDB.PlantillaConAtleta
+import com.example.fantasyatl.data.PlantillaDB.PlantillaEntry
+import com.example.fantasyatl.data.SessionDB.SessionManager
+import com.example.fantasyatl.data.SessionDB.SupabaseClient
+
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.buildJsonObject
@@ -40,6 +41,7 @@ class PlantillaViewModel : ViewModel() {
                         }
                     }.decodeSingleOrNull<LigaUsuario>()
 
+                // 🟢 CORREGIDO: Fallback unificado a 100.000.000 € (100M), igual que en crearLiga/unirseALigaPorCodigo
                 presupuesto.value = membresia?.presupuesto ?: 100000000L
 
                 val todos = SupabaseClient.client.from("plantilla_usuario")
@@ -81,13 +83,18 @@ class PlantillaViewModel : ViewModel() {
     }
 
     /**
-     * 267323f
-     * 🟢 NUEVA FUNCIÓN: Permite comprar un Atleta del mercado, restar su precio
+     * 🟢 Permite comprar un Atleta del mercado, restar su precio del presupuesto
      * e insertarlo directamente como Suplente (esTitular = false) en la liga actual.
+     *
+     * 🟢 CORREGIDO: Verifica que el atleta no esté ya fichado para evitar duplicados.
      */
     fun ficharAtleta(atleta: Atleta, onExito: () -> Unit, onError: (String) -> Unit) {
         val email = SessionManager.usuarioActual?.email ?: return
         val ligaId = SessionManager.ligaActual?.id ?: return
+        val atletaId = atleta.id ?: run {
+            onError("Atleta inválido")
+            return
+        }
 
         // Validación de dinero local por seguridad
         if (presupuesto.value < atleta.precio.toLong()) {
@@ -97,12 +104,27 @@ class PlantillaViewModel : ViewModel() {
 
         viewModelScope.launch {
             try {
+                // 🟢 0. Verificar que el atleta NO esté ya fichado en esta liga por este usuario
+                val yaFichado = SupabaseClient.client.from("plantilla_usuario")
+                    .select {
+                        filter {
+                            eq("email_usuario", email)
+                            eq("liga_id", ligaId)
+                            eq("atleta_id", atletaId)
+                        }
+                    }.decodeSingleOrNull<PlantillaEntry>()
+
+                if (yaFichado != null) {
+                    onError("Este atleta ya está en tu plantilla")
+                    return@launch
+                }
+
                 // 1. Insertar el nuevo Atleta en la plantilla del usuario como suplente
                 val nuevaEntrada = PlantillaEntry(
                     id = UUID.randomUUID().toString(),
                     ligaId = ligaId,
                     emailUsuario = email,
-                    atletaId = atleta.id,
+                    atletaId = atletaId,
                     esTitular = false // Entra al banquillo por defecto
                 )
                 SupabaseClient.client.from("plantilla_usuario").insert(nuevaEntrada)
@@ -131,20 +153,27 @@ class PlantillaViewModel : ViewModel() {
         }
     }
 
+    /**
+     * 🟢 CORREGIDO: Al vender un atleta, ahora se SUMA el precio al presupuesto del usuario.
+     * Antes se ignoraba el precio y el saldo no cambiaba.
+     */
     fun venderAtleta(entry: PlantillaConAtleta) {
         val email = SessionManager.usuarioActual?.email ?: return
         val ligaId = SessionManager.ligaActual?.id ?: return
         val idPlantilla = entry.id ?: return
-        val precioAtleta = entry.atleta?.precio ?: 0L
+        // ✅ precio es Int en el modelo Atleta → lo convertimos a Long para el presupuesto
+        val precioAtleta: Long = entry.atleta?.precio?.toLong() ?: 0L
 
         viewModelScope.launch {
             isLoading.value = true
             try {
+                // 1. Borrar la entrada de plantilla
                 SupabaseClient.client.from("plantilla_usuario").delete {
                     filter { eq("id", idPlantilla) }
                 }
 
-                val nuevoPresupuesto = presupuesto.value
+                // 2. Sumar el precio del atleta al presupuesto
+                val nuevoPresupuesto = presupuesto.value + precioAtleta
 
                 val updateData = buildJsonObject {
                     put("presupuesto", nuevoPresupuesto)

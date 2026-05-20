@@ -1,137 +1,319 @@
 package com.example.fantasyatl.ui.liga
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LigaScreen(
     onVolverAlDashboard: () -> Unit,
-    viewModel: LigaViewModel = viewModel()
+    ligaViewModel: LigaViewModel = viewModel()
 ) {
-    var mostrarCrear by remember { mutableStateOf(false) }
 
-    val gradientBackground = Brush.verticalGradient(
-        colors = listOf(Color(0xFF1A237E), Color(0xFF121212))
+    val premiumBackground = Brush.verticalGradient(
+        colors = listOf(
+            Color(0xFF111E47),
+            Color(0xFF0A1128)
+        )
     )
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(brush = gradientBackground),
-        contentAlignment = Alignment.Center
-    ) {
-        if (viewModel.isLoading.value) {
-            CircularProgressIndicator(color = Color.White)
-        } else {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth(0.9f)
-                    .padding(16.dp),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .padding(24.dp)
-                        .fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
+    Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = {
                     Text(
-                        text = if (mostrarCrear) "Crear Tu Liga" else "Unirse a una Liga",
-                        fontSize = 26.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1A237E)
+                        text = "Configuración de Liga",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
                     )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(
-                        text = if (mostrarCrear)
-                            "Se generará un código único para que tus amigos puedan unirse."
-                        else "Introduce el código de la liga para empezar a competir.",
-                        textAlign = TextAlign.Center,
-                        color = Color.Gray,
-                        fontSize = 14.sp
-                    )
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    if (mostrarCrear) {
-                        OutlinedTextField(
-                            value = viewModel.nombreLiga.value,
-                            onValueChange = { viewModel.nombreLiga.value = it },
-                            label = { Text("Nombre de la liga") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                    } else {
-                        OutlinedTextField(
-                            value = viewModel.codigoLiga.value,
-                            onValueChange = { viewModel.codigoLiga.value = it.uppercase() },
-                            label = { Text("Código de acceso") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            shape = RoundedCornerShape(12.dp)
+                },
+                navigationIcon = {
+                    IconButton(onClick = onVolverAlDashboard) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver",
+                            tint = Color.White
                         )
                     }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color(0xFF1A237E)
+                )
+            )
+        }
+    ) { paddingValues ->
 
-                    viewModel.errorMessage.value?.let { error ->
-                        Spacer(modifier = Modifier.height(16.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(premiumBackground)
+                .padding(paddingValues)
+        ) {
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+
+                // -------------------------
+                // CREAR NUEVA LIGA
+                // -------------------------
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFF1A2552)
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp)
+                    ) {
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = null,
+                                tint = Color(0xFFFFA000)
+                            )
+
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            Text(
+                                text = "Crear Nueva Liga",
+                                color = Color.White,
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        OutlinedTextField(
+                            value = ligaViewModel.nombreLiga.value,
+                            onValueChange = {
+                                ligaViewModel.nombreLiga.value = it
+                            },
+
+                            modifier = Modifier.fillMaxWidth(),
+
+                            shape = RoundedCornerShape(16.dp),
+
+                            textStyle = LocalTextStyle.current.copy(
+                                color = Color.White,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Medium
+                            ),
+
+                            placeholder = {
+                                Text(
+                                    text = "Ej: Liga Olímpica 2026",
+                                    color = Color.White.copy(alpha = 0.45f),
+                                    fontSize = 16.sp
+                                )
+                            },
+
+                            singleLine = true,
+
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+
+                                focusedBorderColor = Color(0xFF4FC3F7),
+                                unfocusedBorderColor = Color.White.copy(alpha = 0.25f),
+
+                                focusedContainerColor = Color(0xFF243B6B),
+                                unfocusedContainerColor = Color(0xFF243B6B),
+
+                                cursorColor = Color(0xFFFFA000)
+                            )
+                        )
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        Button(
+                            onClick = {
+                                ligaViewModel.crearLiga {
+                                    onVolverAlDashboard()
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(58.dp),
+                            shape = RoundedCornerShape(18.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF238636)
+                            )
+                        ) {
+                            Text(
+                                text = "Confirmar y Crear",
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+
+                // -------------------------
+                // UNIRSE A LIGA
+                // -------------------------
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFF1A2552)
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp)
+                    ) {
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.Lock,
+                                contentDescription = null,
+                                tint = Color(0xFFFFA000)
+                            )
+
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            Text(
+                                text = "Unirse con Código",
+                                color = Color.White,
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        OutlinedTextField(
+                            value = ligaViewModel.codigoLiga.value,
+                            onValueChange = {
+                                ligaViewModel.codigoLiga.value = it.uppercase()
+                            },
+
+                            modifier = Modifier.fillMaxWidth(),
+
+                            shape = RoundedCornerShape(16.dp),
+
+                            textStyle = LocalTextStyle.current.copy(
+                                color = Color.White,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 2.sp
+                            ),
+
+                            placeholder = {
+                                Text(
+                                    text = "ABC123",
+                                    color = Color.White.copy(alpha = 0.45f),
+                                    fontSize = 16.sp
+                                )
+                            },
+
+                            singleLine = true,
+
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+
+                                focusedBorderColor = Color(0xFFFFA000),
+                                unfocusedBorderColor = Color.White.copy(alpha = 0.25f),
+
+                                focusedContainerColor = Color(0xFF243B6B),
+                                unfocusedContainerColor = Color(0xFF243B6B),
+
+                                cursorColor = Color(0xFFFFA000)
+                            )
+                        )
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        Button(
+                            onClick = {
+                                ligaViewModel.unirseALigaPorCodigo {
+                                    onVolverAlDashboard()
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(58.dp),
+                            shape = RoundedCornerShape(18.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF2B4C7E)
+                            )
+                        ) {
+                            Text(
+                                text = "Unirse a la Comunidad",
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+
+                // -------------------------
+                // MENSAJE ERROR
+                // -------------------------
+                ligaViewModel.errorMessage.value?.let { error ->
+
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color(0xFF5A1A1A)
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
                         Text(
                             text = error,
-                            color = Color.Red,
-                            fontSize = 13.sp,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    Button(
-                        onClick = {
-                            if (mostrarCrear) {
-                                // 🟢 CORREGIDO: Llama al método unificado
-                                viewModel.crearLiga { onVolverAlDashboard() }
-                            } else {
-                                // 🟢 CORREGIDO: Llama al método unificado por código
-                                viewModel.unirseALigaPorCodigo { onVolverAlDashboard() }
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth().height(50.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))
-                    ) {
-                        Text(if (mostrarCrear) "Crear liga" else "Unirse ahora", color = Color.White)
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    TextButton(onClick = onVolverAlDashboard) {
-                        Text("← Volver al Panel", color = Color.Gray)
-                    }
-
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    TextButton(onClick = {
-                        mostrarCrear = !mostrarCrear
-                        viewModel.errorMessage.value = null // Reseteamos errores al cambiar de pestaña
-                    }) {
-                        Text(
-                            text = if (mostrarCrear) "¿Ya tienes código? Únete aquí" else "¿No tienes liga? Crea una",
-                            color = Color(0xFF1A237E)
+                            color = Color.White,
+                            modifier = Modifier.padding(16.dp),
+                            fontWeight = FontWeight.Medium
                         )
                     }
                 }

@@ -1,4 +1,4 @@
-package com.example.fantasyatl.data.dataPuntos
+package com.example.fantasyatl.data.PuntosDB
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
