@@ -9,30 +9,36 @@ import com.example.fantasyatl.data.PlantillaDB.PlantillaConAtleta
 import com.example.fantasyatl.data.PlantillaDB.PlantillaEntry
 import com.example.fantasyatl.data.SessionDB.SessionManager
 import com.example.fantasyatl.data.SessionDB.SupabaseClient
-
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
-import java.util.UUID
 
 class PlantillaViewModel : ViewModel() {
 
-    var titulares = mutableStateOf<List<PlantillaConAtleta>>(emptyList())
-    var suplentes = mutableStateOf<List<PlantillaConAtleta>>(emptyList())
-    var presupuesto = mutableStateOf<Long>(0L)
-
-    var isLoading = mutableStateOf(false)
-    var error = mutableStateOf<String?>(null)
+    var titulares   = mutableStateOf<List<PlantillaConAtleta>>(emptyList())
+    var suplentes   = mutableStateOf<List<PlantillaConAtleta>>(emptyList())
+    var presupuesto = mutableStateOf(0L)
+    var isLoading   = mutableStateOf(false)
+    var error       = mutableStateOf<String?>(null)
 
     fun cargarPlantilla() {
-        val email = SessionManager.usuarioActual?.email ?: return
-        val ligaId = SessionManager.ligaActual?.id ?: return
+        val email  = SessionManager.usuarioActual?.email ?: run {
+            android.util.Log.d("PLANTILLA", "ERROR: usuarioActual null")
+            return
+        }
+        val ligaId = SessionManager.ligaActual?.id ?: run {
+            android.util.Log.d("PLANTILLA", "ERROR: ligaActual null")
+            return
+        }
+
+        android.util.Log.d("PLANTILLA", "Cargando liga=$ligaId email=$email")
 
         viewModelScope.launch {
             isLoading.value = true
-            error.value = null
+            error.value     = null
             try {
+                // 1. Presupuesto
                 val membresia = SupabaseClient.client.from("liga_usuarios")
                     .select {
                         filter {
@@ -41,9 +47,9 @@ class PlantillaViewModel : ViewModel() {
                         }
                     }.decodeSingleOrNull<LigaUsuario>()
 
-                // 🟢 CORREGIDO: Fallback unificado a 100.000.000 € (100M), igual que en crearLiga/unirseALigaPorCodigo
                 presupuesto.value = membresia?.presupuesto ?: 100000000L
 
+                // 2. Entradas de plantilla
                 val todos = SupabaseClient.client.from("plantilla_usuario")
                     .select {
                         filter {
@@ -52,9 +58,11 @@ class PlantillaViewModel : ViewModel() {
                         }
                     }.decodeList<PlantillaEntry>()
 
+                android.util.Log.d("PLANTILLA", "Entradas: ${todos.size}")
+
+                // 3. Enriquecer con datos del atleta
                 val conAtletas = todos.map { entry ->
                     val idBuscar = entry.atletaId ?: ""
-
                     val atletaObj = if (idBuscar.isNotEmpty()) {
                         SupabaseClient.client.from("atletas")
                             .select { filter { eq("id", idBuscar) } }
@@ -62,127 +70,61 @@ class PlantillaViewModel : ViewModel() {
                     } else null
 
                     PlantillaConAtleta(
-                        id = entry.id,
-                        ligaId = entry.ligaId,
+                        id           = entry.id,
+                        ligaId       = entry.ligaId,
                         emailUsuario = entry.emailUsuario,
-                        atletaId = entry.atletaId,
-                        esTitular = entry.esTitular,
-                        atleta = atletaObj
+                        atletaId     = entry.atletaId,
+                        esTitular    = entry.esTitular,
+                        atleta       = atletaObj
                     )
                 }
 
                 titulares.value = conAtletas.filter { it.esTitular }
                 suplentes.value = conAtletas.filter { !it.esTitular }
 
+                android.util.Log.d("PLANTILLA", "Titulares=${titulares.value.size} Suplentes=${suplentes.value.size}")
+
             } catch (e: Exception) {
-                error.value = "Error al cargar la plantilla: ${e.localizedMessage}"
+                error.value = "Error al cargar plantilla: ${e.localizedMessage}"
+                android.util.Log.e("PLANTILLA", "Error: ${e.localizedMessage}")
             } finally {
                 isLoading.value = false
             }
         }
     }
 
-    /**
-     * 🟢 Permite comprar un Atleta del mercado, restar su precio del presupuesto
-     * e insertarlo directamente como Suplente (esTitular = false) en la liga actual.
-     *
-     * 🟢 CORREGIDO: Verifica que el atleta no esté ya fichado para evitar duplicados.
-     */
-    fun ficharAtleta(atleta: Atleta, onExito: () -> Unit, onError: (String) -> Unit) {
-        val email = SessionManager.usuarioActual?.email ?: return
-        val ligaId = SessionManager.ligaActual?.id ?: return
-        val atletaId = atleta.id ?: run {
-            onError("Atleta inválido")
-            return
-        }
-
-        // Validación de dinero local por seguridad
-        if (presupuesto.value < atleta.precio.toLong()) {
-            onError("No tienes suficiente presupuesto para fichar a este atleta")
-            return
-        }
+    fun venderAtleta(entry: PlantillaConAtleta) {
+        val email      = SessionManager.usuarioActual?.email ?: return
+        val ligaId     = SessionManager.ligaActual?.id ?: return
+        val idPlantilla = entry.id ?: return
+        val precioAtleta = entry.atleta?.precio?.toLong() ?: 0L
 
         viewModelScope.launch {
+            isLoading.value = true
             try {
-                // 🟢 0. Verificar que el atleta NO esté ya fichado en esta liga por este usuario
-                val yaFichado = SupabaseClient.client.from("plantilla_usuario")
-                    .select {
-                        filter {
-                            eq("email_usuario", email)
-                            eq("liga_id", ligaId)
-                            eq("atleta_id", atletaId)
-                        }
-                    }.decodeSingleOrNull<PlantillaEntry>()
-
-                if (yaFichado != null) {
-                    onError("Este atleta ya está en tu plantilla")
-                    return@launch
+                SupabaseClient.client.from("plantilla_usuario").delete {
+                    filter { eq("id", idPlantilla) }
                 }
 
-                // 1. Insertar el nuevo Atleta en la plantilla del usuario como suplente
-                val nuevaEntrada = PlantillaEntry(
-                    id = UUID.randomUUID().toString(),
-                    ligaId = ligaId,
-                    emailUsuario = email,
-                    atletaId = atletaId,
-                    esTitular = false // Entra al banquillo por defecto
-                )
-                SupabaseClient.client.from("plantilla_usuario").insert(nuevaEntrada)
-
-                // 2. Restar el coste del presupuesto actual
-                val nuevoPresupuesto = presupuesto.value - atleta.precio.toLong()
-
-                // 3. Actualizar el saldo en Supabase de forma segura
-                val updateData = buildJsonObject {
-                    put("presupuesto", nuevoPresupuesto)
-                }
-                SupabaseClient.client.from("liga_usuarios").update(updateData) {
+                val nuevoPresupuesto = presupuesto.value + precioAtleta
+                SupabaseClient.client.from("liga_usuarios").update(
+                    buildJsonObject { put("presupuesto", nuevoPresupuesto) }
+                ) {
                     filter {
                         eq("email_usuario", email)
                         eq("liga_id", ligaId)
                     }
                 }
 
-                // 4. Forzar la recarga local de datos y avisar a la pantalla
-                cargarPlantilla()
-                onExito()
-
-            } catch (e: Exception) {
-                onError("Error al tramitar el fichaje: ${e.localizedMessage}")
-            }
-        }
-    }
-
-    /**
-     * 🟢 CORREGIDO: Al vender un atleta, ahora se SUMA el precio al presupuesto del usuario.
-     * Antes se ignoraba el precio y el saldo no cambiaba.
-     */
-    fun venderAtleta(entry: PlantillaConAtleta) {
-        val email = SessionManager.usuarioActual?.email ?: return
-        val ligaId = SessionManager.ligaActual?.id ?: return
-        val idPlantilla = entry.id ?: return
-        // ✅ precio es Int en el modelo Atleta → lo convertimos a Long para el presupuesto
-        val precioAtleta: Long = entry.atleta?.precio?.toLong() ?: 0L
-
-        viewModelScope.launch {
-            isLoading.value = true
-            try {
-                // 1. Borrar la entrada de plantilla
-                SupabaseClient.client.from("plantilla_usuario").delete {
-                    filter { eq("id", idPlantilla) }
-                }
-
-                // 2. Sumar el precio del atleta al presupuesto
-                val nuevoPresupuesto = presupuesto.value + precioAtleta
-
-                val updateData = buildJsonObject {
-                    put("presupuesto", nuevoPresupuesto)
-                }
-
-                SupabaseClient.client.from("liga_usuarios").update(updateData) {
-                    filter {
-                        eq("email_usuario", email)
-                        eq("liga_id", ligaId)
+                // Volver a poner disponible en mercado
+                entry.atletaId?.let { atletaId ->
+                    SupabaseClient.client.from("mercado_liga").update(
+                        buildJsonObject { put("disponible", true) }
+                    ) {
+                        filter {
+                            eq("liga_id", ligaId)
+                            eq("atleta_id", atletaId)
+                        }
                     }
                 }
 
@@ -198,23 +140,17 @@ class PlantillaViewModel : ViewModel() {
 
     fun cambiarTitularidad(entry: PlantillaConAtleta) {
         val idPlantilla = entry.id ?: return
-        val nuevoEstadoTitular = !entry.esTitular
-
         viewModelScope.launch {
             isLoading.value = true
             try {
-                val updateData = buildJsonObject {
-                    put("es_titular", nuevoEstadoTitular)
-                }
-
-                SupabaseClient.client.from("plantilla_usuario").update(updateData) {
+                SupabaseClient.client.from("plantilla_usuario").update(
+                    buildJsonObject { put("es_titular", !entry.esTitular) }
+                ) {
                     filter { eq("id", idPlantilla) }
                 }
-
                 cargarPlantilla()
-
             } catch (e: Exception) {
-                error.value = "Error al cambiar la alineación: ${e.localizedMessage}"
+                error.value = "Error al cambiar titularidad: ${e.localizedMessage}"
             } finally {
                 isLoading.value = false
             }

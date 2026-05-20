@@ -5,17 +5,18 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class PlantillaEntry(
+    @SerialName("id")
     val id: String? = null,
 
     @SerialName("liga_id")
-    val ligaId: String, // 🟢 Mantiene camelCase para tu código
+    val ligaId: String,
 
     @SerialName("email_usuario")
-    val emailUsuario: String, // 🟢 Mantiene camelCase para tu código
+    val emailUsuario: String,
 
     @SerialName("atleta_id")
-    val atletaId: String?, // 🟢 Mantiene camelCase para tu código
+    val atletaId: String?,
 
     @SerialName("es_titular")
-    val esTitular: Boolean // 🟢 Mantiene camelCase para tu código
+    val esTitular: Boolean
 )
