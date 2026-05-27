@@ -114,7 +114,7 @@ fun PlantillaScreen(
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    // 🟢 CORREGIDO: esTitular en lugar de es_titular
+
                                     if (entry.esTitular) "🟢 Titular" else "🟡 Suplente",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Medium

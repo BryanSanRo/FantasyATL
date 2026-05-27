@@ -38,7 +38,7 @@ class LigaViewModel : ViewModel() {
         }
 
         viewModelScope.launch {
-            if (isLoading.value) return@launch  // ✅ evita doble ejecución
+            if (isLoading.value) return@launch
             isLoading.value = true
             errorMessage.value = null
             try {
@@ -64,7 +64,7 @@ class LigaViewModel : ViewModel() {
                 // ✅ Poblar mercado_liga con TODOS los atletas disponibles
                 poblarMercadoLiga(nuevoIdLiga)
 
-                // ✅ Asignar 6 atletas iniciales y marcarlos como no disponibles
+                // ✅ Asignar 4 atletas iniciales y marcarlos como no disponibles
                 asignarAtletasAleatorios(ligaId = nuevoIdLiga, email = emailAdmin)
 
                 SessionManager.ligaActual = nuevaLiga
@@ -168,7 +168,7 @@ class LigaViewModel : ViewModel() {
 
     // -------------------------------------------------------
     // ASIGNAR ATLETAS INICIALES
-    // Inserta 6 atletas en plantilla y los marca como no disponibles en mercado
+    // Inserta 4 atletas en plantilla y los marca como no disponibles en mercado
     // -------------------------------------------------------
     private suspend fun asignarAtletasAleatorios(ligaId: String, email: String) {
         try {
