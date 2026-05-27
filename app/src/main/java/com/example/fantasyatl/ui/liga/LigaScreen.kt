@@ -1,16 +1,7 @@
 package com.example.fantasyatl.ui.liga
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -18,20 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LocalTextStyle
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -176,10 +154,13 @@ fun LigaScreen(
 
                         Button(
                             onClick = {
-                                ligaViewModel.crearLiga {
-                                    onVolverAlDashboard()
+                                if (!ligaViewModel.isLoading.value) {
+                                    ligaViewModel.crearLiga {
+                                        onVolverAlDashboard()
+                                    }
                                 }
                             },
+                            enabled = !ligaViewModel.isLoading.value,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(58.dp),
@@ -188,11 +169,19 @@ fun LigaScreen(
                                 containerColor = Color(0xFF238636)
                             )
                         ) {
-                            Text(
-                                text = "Confirmar y Crear",
-                                fontSize = 17.sp,
-                                fontWeight = FontWeight.Bold
-                            )
+                            if (ligaViewModel.isLoading.value) {
+                                CircularProgressIndicator(
+                                    color = Color.White,
+                                    modifier = Modifier.size(22.dp),
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Text(
+                                    text = "Confirmar y Crear",
+                                    fontSize = 17.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                     }
                 }
@@ -277,10 +266,13 @@ fun LigaScreen(
 
                         Button(
                             onClick = {
-                                ligaViewModel.unirseALigaPorCodigo {
-                                    onVolverAlDashboard()
+                                if (!ligaViewModel.isLoading.value) {
+                                    ligaViewModel.unirseALigaPorCodigo {
+                                        onVolverAlDashboard()
+                                    }
                                 }
                             },
+                            enabled = !ligaViewModel.isLoading.value,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(58.dp),
